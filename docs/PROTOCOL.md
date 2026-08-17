@@ -77,11 +77,29 @@ solved to transmit.
 
 Known so far, from captures where the button pressed is known:
 
-| field | observation | confidence |
-|-------|-------------|------------|
-| `cmd1` bit 0 | **On/off.** `1` is on, `0` is off. | Confirmed by a controlled capture |
-| `cmd1` bit 1 | **Thermostat ("smart") mode**, probably. | Correlation only — see below |
-| `cmd2` | `0x3N`, where `N` is the flame level, `0x30`–`0x36` seen. | Confirmed |
+The full bit layout, from [smartfire][smartfire] and checked against every
+capture we have:
+
+    cmd1:  pilot(1)  light(3)  reserved(2)  thermostat(1)  power(1)
+    cmd2:  front(1)  fan(3)    aux(1)       flame(3)
+
+| field | meaning | confidence |
+|-------|---------|------------|
+| `cmd1` bit 0 | **Power.** `1` is on, `0` is off. | Confirmed by a controlled capture |
+| `cmd1` bit 1 | **Thermostat ("smart") mode.** | Our correlation, plus the independent layout |
+| `cmd1` bits 3–2 | Reserved; zero in every frame seen. | — |
+| `cmd1` bits 6–4 | Accent light, 0–6. | smartfire's claim, unverified |
+| `cmd1` bit 7 | Continuous pilot. | smartfire's claim, unverified |
+| `cmd2` bits 2–0 | **Main flame level, 0–6.** | Confirmed |
+| `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim, unverified |
+| `cmd2` bits 6–4 | Blower, 0–6. Reads 3 in every capture we have. | smartfire's claim, unverified |
+| `cmd2` bit 7 | Front flame / split. | smartfire's claim, unverified |
+
+All sixteen bits are accounted for, which is what makes a complete
+verification possible; `docs/MAPPING.md` is the procedure. Note that the
+layout explains every press we captured — power moved only `power`, the flame
+buttons moved only `flame`, and switching to smart mode moved only
+`thermostat` — which is why it is trusted this far and no further.
 
 The on/off bit was isolated on 2026-08-16 by a capture of the power button
 pressed on, off, on, off with nothing else touched
@@ -192,5 +210,19 @@ makes the appliance cycle on its own and will fight Home Assistant.
 
 ## Reference
 
-- [smartfire](https://github.com/johnellinwood/smartfire) — Python Proflame 2
-  controller; the origin of the inherited approach.
+- [smartfire] — Python Proflame 2 controller; the origin of the inherited
+  approach, and the source of the command-byte bit layout. Its frame structure
+  was derived independently of ours and agrees exactly: 7 words of 13 bits,
+  sync `11`, a start guard bit, 8 data bits, a padding bit set only in the
+  first word, parity, an end guard bit, Manchester `10`/`01`.
+
+  Its checksum formula is the same function as ours for all 256 command
+  values, with `K = (c_high << 4) | c_low`. It hardcodes its own remote's
+  constants, which come to `K1 = 0xd0` and `K2 = 0x07` — not ours — so that
+  part of it does not transfer between remotes, which is why we derive `K`
+  from a frame instead.
+
+  It also reports that the fireplace echoes a successful command back
+  verbatim. We have not confirmed that; see `docs/MAPPING.md`.
+
+[smartfire]: https://github.com/johnellinwood/smartfire
