@@ -1,111 +1,115 @@
 # Proflame protocol notes
 
-Status: **partial, derived from inherited data** (2026-08-16)
+Status: **solved and verified against our own captures** (2026-08-16)
 
-## Provenance and trust
+The frame format below was derived from scratch from two captures of the
+fireplace remote taken in the living room at 315 MHz, and independently
+reproduces the checksum relation that had been derived earlier from an
+inherited packet table. Test data lives in `tests/`, and
+`tools/decode_proflame.py` is the reference decoder.
 
-`tests/cmd.csv` holds 220 decoded packets from five distinct remotes, inherited
-from the earlier `proflame-mqtt` prototype on the XPS. The columns are
-`serial1, serial2, version, cmd1, cmd2, checksum1, checksum2`.
+## Physical layer
 
-That prototype's protocol conclusions are explicitly untrusted, and its byte
-grouping in particular is suspect — see "What does not add up" below, which is
-evidence the grouping does not match the on-air bit order. What follows is only
-what the data proves about *itself*: every claim here was checked against all
-220 packets, and `tools/analyze_cmd_csv.py` re-derives and re-verifies it from
-scratch.
+| property | value |
+|----------|-------|
+| carrier | 315.000 MHz, OOK |
+| symbol | 450 µs |
+| coding | Manchester, `10` = 1, `01` = 0 |
+| frame | 7 blocks × 26 symbols = 81.1 ms |
+| repeats | frame repeated while the button is held, ~4.15 ms between frames |
 
-Nothing here has been confirmed against a signal we captured ourselves. Doing
-that is M1's job.
+315 MHz is the FCC variant; SIT also ships a 433.92 MHz CE variant, so the band
+is regional rather than fixed.
 
-## What the data proves
+Measured pulse widths cluster at 400/850/1300 µs for marks and 500/950 µs for
+spaces. Marks read consistently ~100 µs shorter than spaces because the slicing
+threshold sits above the envelope's midpoint; the underlying symbol is 450 µs
+either way, which is why quantising to 450 µs recovers the structure exactly.
 
-1. **The packet carries two independent checksums.** `checksum1` is a function
-   of `cmd1` alone (given the remote), `checksum2` of `cmd2` alone. Neither
-   depends on the other half. Zero violations in 220 packets.
+## Block format
 
-2. **Both halves use the same function.** The map from command byte to
-   checksum contribution is identical for the two halves; only an additive
-   constant differs.
+Each block is 26 symbols:
 
-3. **The checksum is XOR-affine**, i.e. linear over GF(2) plus a constant.
-   `cs(a) ^ cs(b)` depends only on `a ^ b`. There are no arithmetic carries, so
-   this is a shift-register style checksum, not a sum.
+    3 symbols mark + 1 symbol space     sync; three consecutive equal symbols
+                                        cannot occur in Manchester, so this is
+                                        a deliberate code violation
+    8 data bits, Manchester, MSB first
+    1 start-of-frame flag               set in block 0 only
+    1 parity bit                        even parity over the preceding 9 bits
+    1 stop bit                          always 1
 
-4. **Closed form.** With `M` the linear map and `K` a per-remote constant:
+Verified across 29 frames: parity, stop bit and start-of-frame flag hold in
+every block of every cleanly received frame.
 
-       cs = M(cmd) ^ K
+## Frame fields
 
-       M(byte)  = (byte & 0xF0) ^ nibble(byte & 0x0F) ^ nibble(byte >> 4)
-       nibble(n) = (n ^ (n << 5)) & 0xFF
+The seven blocks are, in order:
 
-   `M` is a bijection on the 256 byte values. This reproduces **440 of 440**
-   checksum bytes across all 220 packets and all five remotes.
+    serial1  serial2  version  cmd1  cmd2  checksum1  checksum2
 
-5. **Per-remote constants** (`K` differs between the two halves):
+For the remote in this house: `serial1 = 0x00`, `serial2 = 0x86`,
+`version = 0x02`.
 
-   | remote | half 1 | half 2 | packets |
-   |--------|--------|--------|---------|
-   | 21dd   | 0x7d   | 0x8b   | 2       |
-   | 47eb   | 0x61   | 0xa7   | 22      |
-   | 7d14   | 0x7e   | 0x9e   | 1       |
-   | a4ed   | 0xeb   | 0x28   | 176     |
-   | bf39   | 0xdd   | 0x1c   | 19      |
+That is worth pausing on. The inherited notes recorded a "Remote ID" of
+`008602` with no explanation of its structure; decoding the air interface from
+scratch produced exactly those three bytes as three separate fields. The two
+independent derivations agree.
 
-### Why this is enough to transmit
+## Checksums
 
-The mapping from serial number to `K` is *not* solved, and with five samples it
-cannot be. It also does not need to be: `K = cs ^ M(cmd)` falls straight out of
-a single valid packet. **One captured packet from our own remote yields both
-constants, and from there any command can be encoded.** Solving the general
-serial derivation would only matter for supporting a remote we cannot hear.
+Each half is covered independently, `checksum1` by `cmd1` and `checksum2` by
+`cmd2`, with the same function and a per-remote constant:
 
-## What does not add up
+    cs = M(cmd) ^ K
+    M(byte)   = (byte & 0xF0) ^ nibble(byte & 0x0F) ^ nibble(byte >> 4)
+    nibble(n) = (n ^ (n << 5)) & 0xFF
 
-`M` is linear and invertible, which is what a CRC's "multiply by x⁸" step looks
-like — but it is not one:
+For this remote, **K = 0x0a for half 1 and 0x86 for half 2**, constant across
+all 29 captured frames spanning six distinct command values.
 
-- A byte-wide CRC-8 was searched exhaustively (all 256 polynomials, both input
-  and output reflections, all 24 orderings of the four header bytes). No fit.
-- Within a nibble the map doubles cleanly (`0x21, 0x42, 0x84`), the signature of
-  a shift register, but the pattern breaks across the nibble boundary: bit 3
-  maps to `0x08` where a CRC would require `0x29`.
-- No bit permutation of the byte (reversal, nibble swap, all rotations) turns
-  `M` into a clean CRC multiply.
-- The earlier bytes do not enter through powers of `M`, as they would in a CRC.
+This model came from `tests/cmd.csv`, a table of 220 packets from five other
+remotes inherited from the earlier prototype, where it reproduced 440 of 440
+checksum bytes. It then predicted ours correctly on the first try. Deriving `K`
+needs only one valid frame, so no part of the serial-to-`K` mapping has to be
+solved to transmit.
 
-The consistent reading is that **the checksum operates on nibbles, and the
-nibbles are not contiguous on air the way this CSV groups them**. That fits the
-device: Proflame's fields (flame height, fan speed, light level) are all 0–6
-values, i.e. nibble-sized.
+## Command semantics
 
-Supporting observation: across the dataset `cmd1` only ever takes high nibbles
-`0..6` with an optional `0x8` flag bit, and low nibbles `0..3`. A 0–6 field
-packed in bits 4–6 with flags around it is exactly the expected shape.
+Known so far, from captures where the button pressed is known:
 
-## What M1 must confirm
+| field | observation |
+|-------|-------------|
+| `cmd2` | `0x3N`, where `N` is the flame level. Flame-up stepped `0x32 → 0x33 → 0x34`, flame-down stepped `0x35 → 0x34 → 0x33`. |
+| `cmd1` | `0x01` throughout both captures, so it carries state that neither button changed. |
 
-Ordered by how much depends on it:
+Each level was transmitted as five identical frames before the next step, so
+the remote emits the whole state repeatedly rather than sending an increment.
+This matches the inherited table, where `cmd1` only ever took high nibbles
+`0..6` with an optional `0x8` flag and low nibbles `0..3` — the shape of a 0–6
+level field packed alongside flags.
 
-1. **Carrier and modulation.** 315 MHz, OOK. Read straight off the capture
-   spectrum and the pulse-width histogram.
-2. **Symbol clock and encoding.** Two clusters at t and 2t confirm Manchester;
-   the histogram gives t.
-3. **The real bit order**, by aligning a decoded bit stream against a packet
-   whose fields we know because we pressed the button. This is the piece that
-   should explain the nibble anomaly above.
-4. **Whether the checksum model transfers.** Capture two packets with different
-   commands from our remote, derive `K` from the first, and check it predicts
-   the second. If it does, the model above is ours to use. If it does not, the
-   inherited byte grouping is wrong and only findings 1–3 survive.
-5. **Field semantics**, by controlled captures: press one button, record what
-   changed.
+Mapping the rest needs controlled captures: press one button, note what
+changed. Fan, accent light, aux and thermostat are all unmapped.
 
-Remember that a burst always ends on a mark, so a Manchester frame ending in a
-one looks half a bit short — the decoder must restore that from the symbol
-clock. See `proxyd/README.md`.
+## Reproducing
+
+    hrf demod --in flame_up.cs8 --gap-us 3000 --threshold 0.3 --out-all up.json
+    python3 tools/decode_proflame.py up.json
+
+`--gap-us 3000` matters: the default 10 ms is longer than the 4.15 ms
+inter-frame gap, so frames get merged into one 429 ms blob and the histogram
+smears. `tests/frames/*.timings.json` are the demodulated captures, kept as
+regression data since the raw IQ is 20 MB per capture.
+
+## Still open
+
+1. Field semantics beyond the flame level.
+2. Whether a transmitted frame is accepted by the fireplace — the actual M1
+   go/no-go, still untested.
+3. The serial-to-`K` derivation, which is not needed for our own remote and may
+   not be worth solving.
 
 ## Reference
 
 - [smartfire](https://github.com/johnellinwood/smartfire) — Python Proflame 2
-  controller, the origin of the inherited approach. Also unverified by us.
+  controller; the origin of the inherited approach.
