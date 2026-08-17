@@ -84,13 +84,13 @@ capture we have:
 | field | meaning | confidence |
 |-------|---------|------------|
 | `cmd1` bit 0 | **Power.** `1` is on, `0` is off. | Confirmed by a controlled capture |
-| `cmd1` bit 1 | **Thermostat ("smart") mode.** | Our correlation, plus the independent layout |
+| `cmd1` bit 1 | **Thermostat ("smart") mode.** `1` is smart, `0` is manual. | Confirmed by a controlled capture |
 | `cmd1` bits 3–2 | Reserved; zero in every frame seen. | — |
 | `cmd1` bits 6–4 | Accent light, 0–6. | smartfire's claim, unverified |
 | `cmd1` bit 7 | Continuous pilot. | smartfire's claim, unverified |
 | `cmd2` bits 2–0 | **Main flame level, 0–6.** | Confirmed |
 | `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim, unverified |
-| `cmd2` bits 6–4 | Blower, 0–6. Reads 3 in every capture we have. | smartfire's claim, unverified |
+| `cmd2` bits 6–4 | **Blower, 0–6.** | Confirmed by a controlled sweep |
 | `cmd2` bit 7 | Front flame / split. | smartfire's claim, unverified |
 
 All sixteen bits are accounted for, which is what makes a complete
@@ -132,6 +132,29 @@ The inherited `cmd.csv` does not corroborate any of this, and should not be
 read as if it did: it is a systematic sweep of command values, not a log of
 presses with known meaning. Semantics come only from captures where the button
 is known.
+
+### The blower and the thermostat, confirmed (2026-08-17)
+
+`tests/frames/manual_fan_sweep.frames.jsonl` settles both, in one session
+recorded by the daemon. The handset was switched from smart to manual mode and
+the blower then stepped from 1 up to 6 and back down to 1, one level at a time.
+
+Every step moved `cmd2` bits 6–4 and **nothing else** — eleven consecutive
+transitions, each reported as `changed: fan` — so that field is the blower, and
+it counts linearly in both directions. That also explains the anomaly that had
+been sitting in every earlier capture: `fan` read 3 constantly because the
+blower was genuinely sitting at level 3.
+
+The manual-mode frames carry `thermostat = 0` where the smart-mode ones carried
+1, and the flame stayed at 4 for the whole session instead of drifting on its
+own. Both are the isolation the earlier capture could not give.
+
+One reception note worth keeping: 73 of the 80 frames decoded. The rest arrived
+late in the session at a weaker level — peak 159 where the others saturate at
+256 — and at that level the inter-frame gap stops being distinguishable, so
+pairs of frames merge into an eight-block burst that cannot decode. It cost
+nothing, because the remote sends five identical frames per state, so no step
+of the sweep was lost. Frame loss is not information loss here.
 
 ### Thermostat mode
 

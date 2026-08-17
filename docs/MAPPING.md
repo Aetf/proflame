@@ -54,13 +54,18 @@ field is really the blower. That is what the procedure below is for.
 |-------|--------|
 | `power` | **Confirmed.** Controlled capture, on/off/on/off, nothing else touched. |
 | `flame` | **Confirmed.** Watched step 2→3→4 and 5→4→3, and seen at 0, 1 and 6. |
-| `thermostat` | **Corroborated.** Our capture correlates it with smart mode, and the independent layout agrees, but we never isolated it. Step 2 below settles it. |
-| `light`, `fan`, `aux`, `front`, `pilot` | **Unverified.** smartfire's claim only. |
+| `thermostat` | **Confirmed.** Smart→manual moved it and the flame stopped drifting. |
+| `fan` | **Confirmed.** Swept 1→6→1, eleven transitions, `fan` and nothing else each time. |
+| `light`, `aux`, `front`, `pilot` | **Unverified.** smartfire's claim only. |
 | `reserved` | Zero in every frame so far. |
 
-One specific prediction worth testing early: **`fan` reads 3 in every capture we
-have**, across days and both modes. Either the blower really is sitting at level
-3, or that field is not the fan. Step 4 answers it in one press.
+The blower sweep also settled a standing anomaly: `fan` read 3 in every capture
+for days, which turned out to be the blower genuinely sitting at level 3 rather
+than the field being mislabelled.
+
+Remaining: steps 5 to 8. **`fan` was never seen at 0** — the sweep bottomed out
+at 1 — so whether the blower can be commanded off over RF is still open, and
+worth a press at the bottom of its range.
 
 ## Before you start
 
@@ -90,9 +95,9 @@ information too.
 | # | do this | expect to move |
 |---|---------|----------------|
 | 1 | Baseline: touch nothing for two minutes | nothing (see "echo" below) |
-| 2 | Mode: smart → manual, then manual → smart, then back to manual | `thermostat` only |
+| 2 | ~~Mode~~ **done** | `thermostat` only |
 | 3 | Flame: press down to minimum, then up to maximum, one step at a time | `flame`, 0…6 |
-| 4 | Fan: press down to minimum, then up to maximum | `fan`, 0…6 |
+| 4 | ~~Fan~~ **done**; but try one more press at the bottom, to see whether it reaches 0 | `fan`, 0…6 |
 | 5 | Light: press down to minimum, then up to maximum | `light`, 0…6 |
 | 6 | Aux outlet: toggle on, then off | `aux` |
 | 7 | Split/front flame: toggle on, then off | `front` |
