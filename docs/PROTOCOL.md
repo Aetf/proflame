@@ -101,11 +101,29 @@ inter-frame gap, so frames get merged into one 429 ms blob and the histogram
 smears. `tests/frames/*.timings.json` are the demodulated captures, kept as
 regression data since the raw IQ is 20 MB per capture.
 
+## Transmission is accepted (2026-08-16)
+
+Replaying a captured frame verbatim — `cmd1 = 0x01`, `cmd2 = 0x32`, ten
+repetitions 4.15 ms apart, 315 MHz, TX VGA 30 dB with the amplifier off —
+**ignited the fireplace from the cold state**. The receive and transmit paths
+are both proven end to end, which closes M1.
+
+Nothing was synthesised for that test. The frame was a byte-for-byte reproduction
+of one the remote itself had sent minutes earlier, which is what made it safe to
+send before the command semantics were mapped.
+
+## Safety note: we can ignite but not extinguish
+
+Every frame captured so far encodes the fireplace *on* at some flame level, so
+the bit that means "off" is unknown. Until an off press is captured, the RF path
+can only start the appliance, and stopping it depends on the physical remote.
+Capturing off is therefore the next thing to do, ahead of any other field.
+
 ## Still open
 
-1. Field semantics beyond the flame level.
-2. Whether a transmitted frame is accepted by the fireplace — the actual M1
-   go/no-go, still untested.
+1. The off command, for the reason above.
+2. Field semantics beyond the flame level: fan, accent light, aux, thermostat.
+   Thermostat mode deserves care, since it makes the appliance cycle on its own.
 3. The serial-to-`K` derivation, which is not needed for our own remote and may
    not be worth solving.
 
