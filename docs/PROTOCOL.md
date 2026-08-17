@@ -79,8 +79,24 @@ Known so far, from captures where the button pressed is known:
 
 | field | observation |
 |-------|-------------|
+| `cmd1` bit 0 | **On/off.** `1` is on, `0` is off. |
 | `cmd2` | `0x3N`, where `N` is the flame level. Flame-up stepped `0x32 → 0x33 → 0x34`, flame-down stepped `0x35 → 0x34 → 0x33`. |
-| `cmd1` | `0x01` throughout both captures, so it carries state that neither button changed. |
+
+The on/off bit was isolated on 2026-08-16 by a capture of the power button
+pressed on, off, on, off with nothing else touched
+(`tests/frames/power_on_off.timings.json`, 25 of 25 frames clean). Exactly one
+field moved: `cmd1` alternated `0x01 → 0x00 → 0x01 → 0x00`.
+
+`cmd2` stayed at `0x36` across both states, which says something useful: **off
+is not "flame level zero"**. The level rides along unchanged and the appliance
+resumes at it, exactly as the physical remote behaves. The corollary is that
+turning the fireplace off at some *other* flame level would be a frame no
+remote has sent, and the project does not synthesise those.
+
+The inherited `cmd.csv` does not corroborate any of this, and should not be
+read as if it did: it is a systematic sweep of command values, not a log of
+presses with known meaning. Semantics come only from captures where the button
+is known.
 
 Each level was transmitted as five identical frames before the next step, so
 the remote emits the whole state repeatedly rather than sending an increment.
@@ -118,19 +134,28 @@ Nothing was synthesised for that test. The frame was a byte-for-byte reproductio
 of one the remote itself had sent minutes earlier, which is what made it safe to
 send before the command semantics were mapped.
 
-## Safety note: we can ignite but not extinguish
+## Safety: the asymmetry is resolved (2026-08-16)
 
-Every frame captured so far encodes the fireplace *on* at some flame level, so
-the bit that means "off" is unknown. Until an off press is captured, the RF path
-can only start the appliance, and stopping it depends on the physical remote.
-Capturing off is therefore the next thing to do, ahead of any other field.
+The project ran for a while able to ignite the fireplace but not extinguish it,
+because every frame captured encoded *on* and the off bit was unknown. The
+power capture closes that: a verbatim off frame is now on file, so both
+directions are reachable by replaying frames the remote itself has sent.
+
+The rule that made this safe still stands and still binds. **Replaying a
+captured frame is safe** — it can only reproduce a state the remote just asked
+for. **Synthesising a frame that has never been observed means guessing bits on
+a gas appliance**, and is not something to settle by experiment. That
+distinction is why the off bit was worth waiting for a capture rather than
+inferring from `cmd.csv`.
+
+Thermostat mode still deserves particular care whenever it is mapped, since it
+makes the appliance cycle on its own and will fight Home Assistant.
 
 ## Still open
 
-1. The off command, for the reason above.
-2. Field semantics beyond the flame level: fan, accent light, aux, thermostat.
-   Thermostat mode deserves care, since it makes the appliance cycle on its own.
-3. The serial-to-`K` derivation, which is not needed for our own remote and may
+1. Field semantics beyond on/off and the flame level: fan, accent light, aux,
+   thermostat.
+2. The serial-to-`K` derivation, which is not needed for our own remote and may
    not be worth solving.
 
 ## Reference
