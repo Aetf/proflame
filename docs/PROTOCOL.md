@@ -77,10 +77,11 @@ solved to transmit.
 
 Known so far, from captures where the button pressed is known:
 
-| field | observation |
-|-------|-------------|
-| `cmd1` bit 0 | **On/off.** `1` is on, `0` is off. |
-| `cmd2` | `0x3N`, where `N` is the flame level. Flame-up stepped `0x32 → 0x33 → 0x34`, flame-down stepped `0x35 → 0x34 → 0x33`. |
+| field | observation | confidence |
+|-------|-------------|------------|
+| `cmd1` bit 0 | **On/off.** `1` is on, `0` is off. | Confirmed by a controlled capture |
+| `cmd1` bit 1 | **Thermostat ("smart") mode**, probably. | Correlation only — see below |
+| `cmd2` | `0x3N`, where `N` is the flame level, `0x30`–`0x36` seen. | Confirmed |
 
 The on/off bit was isolated on 2026-08-16 by a capture of the power button
 pressed on, off, on, off with nothing else touched
@@ -98,6 +99,31 @@ read as if it did: it is a systematic sweep of command values, not a log of
 presses with known meaning. Semantics come only from captures where the button
 is known.
 
+### Thermostat mode, and why `cmd1` bit 1 is not yet confirmed
+
+`tests/frames/smart_mode.frames.jsonl` was recorded by the daemon on
+2026-08-17 with the appliance in thermostat mode, and it is the first capture
+containing `cmd1 = 0x03`. Bit 0 is set (on, which matches), and bit 1 is set,
+which no earlier capture ever showed.
+
+That is suggestive, not proof. Several things changed between the last known
+state and this capture — the appliance was turned on, the flame adjusted, and
+the mode changed — so bit 1 is *correlated* with thermostat mode rather than
+isolated to it. Confirming it needs a capture that toggles only the mode. The
+on/off bit, by contrast, was isolated properly and is confirmed.
+
+Worth having anyway: the checksum model predicted `cmd1 = 0x03`'s checksum
+correctly, a command byte that appears in no earlier capture and in no row of
+`cmd.csv` for this remote. That is independent evidence the model generalises
+rather than merely fitting the data it came from.
+
+**In thermostat mode the remote transmits on its own.** These ten frames
+arrived with nobody touching it: the handset holds the temperature sensor, and
+it stepped the flame from `0x31` to `0x30` three seconds apart to regulate.
+Two consequences. It is a free source of live frames for testing. And it is a
+hazard for M5 — received frames are not all user intent, so a naive state sync
+would treat the thermostat's own regulation as a command and fight it.
+
 Each level was transmitted as five identical frames before the next step, so
 the remote emits the whole state repeatedly rather than sending an increment.
 This matches the inherited table, where `cmd1` only ever took high nibbles
@@ -105,7 +131,12 @@ This matches the inherited table, where `cmd1` only ever took high nibbles
 level field packed alongside flags.
 
 Mapping the rest needs controlled captures: press one button, note what
-changed. Fan, accent light, aux and thermostat are all unmapped.
+changed. Fan, accent light and aux are unmapped, and thermostat mode has only
+the correlation above.
+
+The daemon makes that easier than the bench tools did — `hrf serve --record
+frames.jsonl` keeps every frame it hears, across restarts and disconnects, and
+`hrf decode --in` reads the file directly.
 
 ## Reproducing
 
@@ -153,9 +184,10 @@ makes the appliance cycle on its own and will fight Home Assistant.
 
 ## Still open
 
-1. Field semantics beyond on/off and the flame level: fan, accent light, aux,
-   thermostat.
-2. The serial-to-`K` derivation, which is not needed for our own remote and may
+1. Confirm `cmd1` bit 1 = thermostat mode with a capture that toggles only
+   that, since the existing evidence is correlation.
+2. Field semantics beyond on/off and the flame level: fan, accent light, aux.
+3. The serial-to-`K` derivation, which is not needed for our own remote and may
    not be worth solving.
 
 ## Reference
