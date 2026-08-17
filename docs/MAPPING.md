@@ -59,7 +59,7 @@ field is really the blower. That is what the procedure below is for.
 | `light` | **Confirmed.** Swept off→high→off; `light` and nothing else each time. |
 | `front` | **Not present on this appliance.** The handset has no split-flame control. |
 | `aux` | No separate control on this handset — its MODE cycle is Flame / Blower / "Lights (AUX)", so the light level is the only thing reaching that part of the frame. |
-| `pilot` | **Unverified.** Adjustable from the handset by a key combination, which we do not have. |
+| `pilot` | **Confirmed.** Cycled IPI→CPI→IPI; `pilot` moved and nothing else. |
 | `reserved` | Zero in every frame so far. |
 
 The blower sweep also settled a standing anomaly: `fan` read 3 in every capture
@@ -67,10 +67,11 @@ for days, which turned out to be the blower genuinely sitting at level 3 rather
 than the field being mislabelled. And it reaches 0, so the blower can be
 switched off over RF.
 
-**Remaining: pilot only.** Of the other two, split flame does not exist on this
-appliance and aux has no separate control on this handset, so neither can be
-exercised here. Five fields are confirmed, one is untestable, one is absent,
-and one waits on a key combination.
+**Nothing remaining that this hardware can reach.** Six fields are confirmed by
+controlled captures; split flame does not exist on this appliance and aux has
+no separate control on this handset, so those two rest on smartfire's word and
+would need different hardware to settle. The two reserved bits have never been
+set in any frame.
 
 The handset's MODE button cycles through exactly three adjustable things —
 Flame Adjust, Blower, and "Lights (AUX)" — which is why the sweeps came out so
@@ -112,7 +113,7 @@ information too.
 | 5 | ~~Light~~ **done** | `light`, 0…6 |
 | 6 | ~~Aux~~ — not separately controllable here | `aux` |
 | 7 | ~~Split flame~~ — this appliance does not have it | `front` |
-| 8 | **Pilot mode**: needs the handset key combination | `pilot` |
+| 8 | ~~Pilot mode~~ **done** — IPI ↔ CPI | `pilot` |
 | 9 | ~~Power~~ **done** | `power` |
 
 Steps 3 to 5 sweep the whole range deliberately. A single press only shows the

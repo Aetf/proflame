@@ -1,6 +1,7 @@
 # Proflame protocol notes
 
-Status: **solved and verified against our own captures** (2026-08-16)
+Status: **solved**. Framing and checksums verified 2026-08-16; the command
+fields confirmed by controlled captures 2026-08-17.
 
 The frame format below was derived from scratch from two captures of the
 fireplace remote taken in the living room at 315 MHz, and independently
@@ -87,14 +88,18 @@ capture we have:
 | `cmd1` bit 1 | **Thermostat ("smart") mode.** `1` is smart, `0` is manual. | Confirmed by a controlled capture |
 | `cmd1` bits 3–2 | Reserved; zero in every frame seen. | — |
 | `cmd1` bits 6–4 | **Accent light, 0–6.** | Confirmed by a controlled sweep |
-| `cmd1` bit 7 | Continuous pilot. | smartfire's claim; adjustable from the handset via a key combination, not yet captured |
+| `cmd1` bit 7 | **Continuous pilot.** `1` is CPI, `0` is IPI. | Confirmed by a controlled toggle |
 | `cmd2` bits 2–0 | **Main flame level, 0–6.** | Confirmed |
 | `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim; this handset has no separate control for it |
 | `cmd2` bits 6–4 | **Blower, 0–6.** Reaches 0, so it can be switched off. | Confirmed by a controlled sweep |
 | `cmd2` bit 7 | Front flame / split. | smartfire's claim; **this appliance does not have the feature** |
 
-All sixteen bits are accounted for, which is what makes a complete
-verification possible; `docs/MAPPING.md` is the procedure.
+**All sixteen bits are now accounted for by direct observation**, bar the two
+this appliance cannot exercise. Six fields were confirmed by controlled
+captures on our own remote; split flame does not exist on this unit and the
+handset has no separate aux control, so those two rest on smartfire alone; and
+the two reserved bits have never been set in any frame we have received.
+`docs/MAPPING.md` is the procedure that got there.
 
 Three independent things agree on this layout, which is why the field
 *boundaries* are treated as settled even where the *labels* are not:
@@ -146,14 +151,21 @@ single field. Three sweeps landing in three different places is a much stronger
 result than any one of them: a layout that merely fit the earlier data would
 not survive that.
 
-So `power`, `flame`, `thermostat`, `fan` and `light` are now confirmed on this
-remote. `aux`, `front` and `pilot` remain smartfire's claim, and the two
-reserved bits have been zero in every frame ever received.
+So `power`, `flame`, `thermostat`, `fan`, `light` and `pilot` are confirmed on
+this remote. `aux` and `front` are unreachable rather than unverified — this
+appliance has no split flame, and the handset's MODE cycle is Flame / Blower /
+"Lights (AUX)", with no separate aux control — so they rest on smartfire's word
+and cannot be settled here. The two reserved bits have been zero in every frame
+ever received.
 
-Two open questions closed. **The blower reaches 0**, so it can be switched off
-over RF rather than only turned down. And `fan` reading 3 in every earlier
-capture was simply the blower sitting at level 3 — the field was right all
-along.
+Cycling the pilot between intermittent (IPI) and continuous (CPI) later in the
+same session moved `pilot` and nothing else, four times over, which was the
+last field this hardware could test.
+
+Two open questions closed along the way. **The blower reaches 0**, so it can be
+switched off over RF rather than only turned down. And `fan` reading 3 in every
+earlier capture was simply the blower sitting at level 3 — the field was right
+all along.
 
 One more detail worth keeping, because it will matter for Home Assistant: the
 final power-off moved **only** the `power` bit, leaving flame, fan and light
@@ -299,9 +311,10 @@ makes the appliance cycle on its own and will fight Home Assistant.
 
 ## Still open
 
-1. Confirm `cmd1` bit 1 = thermostat mode with a capture that toggles only
-   that, since the existing evidence is correlation.
-2. Field semantics beyond on/off and the flame level: fan, accent light, aux.
+1. `aux` and `front`, which this appliance and handset cannot exercise. They
+   would need different hardware, and nothing here depends on them.
+2. Whether the fireplace echoes commands back, which smartfire reports and we
+   have never confirmed. It matters for M5; see `docs/MAPPING.md`.
 3. The serial-to-`K` derivation, which is not needed for our own remote and may
    not be worth solving.
 
