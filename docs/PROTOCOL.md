@@ -94,7 +94,13 @@ changed. Fan, accent light, aux and thermostat are all unmapped.
 ## Reproducing
 
     hrf demod --in flame_up.cs8 --gap-us 3000 --threshold 0.3 --out-all up.json
-    python3 tools/decode_proflame.py up.json
+    hrf decode --in up.json
+
+`hrf decode` is the Rust port of the protocol (`proxyd/src/proflame.rs`,
+2026-08-16); `tools/decode_proflame.py` remains as the independent reference
+and the two agree byte for byte on the captures below. The Rust side also
+carries the encoder (frame -> timings) and regression tests that freeze this
+document's numbers in place.
 
 `--gap-us 3000` matters: the default 10 ms is longer than the 4.15 ms
 inter-frame gap, so frames get merged into one 429 ms blob and the histogram
