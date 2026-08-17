@@ -75,8 +75,6 @@ solved to transmit.
 
 ## Command semantics
 
-Known so far, from captures where the button pressed is known:
-
 The full bit layout, from [smartfire][smartfire] and checked against every
 capture we have:
 
@@ -96,10 +94,28 @@ capture we have:
 | `cmd2` bit 7 | Front flame / split. | smartfire's claim, unverified |
 
 All sixteen bits are accounted for, which is what makes a complete
-verification possible; `docs/MAPPING.md` is the procedure. Note that the
-layout explains every press we captured — power moved only `power`, the flame
-buttons moved only `flame`, and switching to smart mode moved only
-`thermostat` — which is why it is trusted this far and no further.
+verification possible; `docs/MAPPING.md` is the procedure.
+
+Three independent things agree on this layout, which is why the field
+*boundaries* are treated as settled even where the *labels* are not:
+
+1. smartfire derived it from its own remote.
+2. It explains every press we captured, with nothing left over: power moved
+   only `power`, the flame buttons only `flame`, switching to smart mode only
+   `thermostat`.
+3. The inherited `cmd.csv` obeys it. Across 220 packets from five other
+   remotes, every nibble that would encode a 3-bit level of 7 is **absent** —
+   `0x7` and `0xf` never appear as `cmd1`'s high nibble, nor as either of
+   `cmd2`'s — and `cmd1`'s low nibble never exceeds 3. That is exactly the
+   constraint "three-bit fields count 0 to 6, and the reserved bits are never
+   set", holding across a table collected by someone else years earlier. It
+   also retroactively explains the shape those notes recorded without
+   explanation: "high nibbles 0–6 with an optional 0x8 flag" is `light` with
+   `pilot` above it.
+
+What that does *not* settle is which three-bit field is which. `cmd2`'s upper
+field could be the blower or something else entirely; only pressing the button
+says. That is what `docs/MAPPING.md` is for.
 
 The on/off bit was isolated on 2026-08-16 by a capture of the power button
 pressed on, off, on, off with nothing else touched
@@ -117,18 +133,19 @@ read as if it did: it is a systematic sweep of command values, not a log of
 presses with known meaning. Semantics come only from captures where the button
 is known.
 
-### Thermostat mode, and why `cmd1` bit 1 is not yet confirmed
+### Thermostat mode
 
 `tests/frames/smart_mode.frames.jsonl` was recorded by the daemon on
 2026-08-17 with the appliance in thermostat mode, and it is the first capture
 containing `cmd1 = 0x03`. Bit 0 is set (on, which matches), and bit 1 is set,
 which no earlier capture ever showed.
 
-That is suggestive, not proof. Several things changed between the last known
-state and this capture — the appliance was turned on, the flame adjusted, and
-the mode changed — so bit 1 is *correlated* with thermostat mode rather than
-isolated to it. Confirming it needs a capture that toggles only the mode. The
-on/off bit, by contrast, was isolated properly and is confirmed.
+On its own that was suggestive rather than proof: several things changed
+between the last known state and this capture — the appliance was turned on,
+the flame adjusted, and the mode changed — so bit 1 was only *correlated* with
+thermostat mode. The independent layout naming that same bit `thermostat` is
+what settles it. A capture toggling only the mode would still be worth having,
+and is step 2 of `docs/MAPPING.md`.
 
 Worth having anyway: the checksum model predicted `cmd1 = 0x03`'s checksum
 correctly, a command byte that appears in no earlier capture and in no row of
@@ -144,9 +161,6 @@ would treat the thermostat's own regulation as a command and fight it.
 
 Each level was transmitted as five identical frames before the next step, so
 the remote emits the whole state repeatedly rather than sending an increment.
-This matches the inherited table, where `cmd1` only ever took high nibbles
-`0..6` with an optional `0x8` flag and low nibbles `0..3` — the shape of a 0–6
-level field packed alongside flags.
 
 Mapping the rest needs controlled captures: press one button, note what
 changed. Fan, accent light and aux are unmapped, and thermostat mode has only

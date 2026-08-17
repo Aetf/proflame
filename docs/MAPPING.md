@@ -18,8 +18,11 @@ a button moves something *else* — in particular the two reserved bits, which
 `hrf decode` prints loudly when they are not zero — then the layout is wrong
 and we have learned something more valuable than a confirmation.
 
-Its layout is not taken on faith. It already explains every button press we
-have captured, with nothing left unexplained:
+Its layout is not taken on faith. Two other things agree with it
+independently, which is why the field *boundaries* below are treated as
+settled even where the *labels* are not.
+
+It explains every button press we have captured, with nothing left over:
 
 | we pressed | frames moved | layout says |
 |------------|--------------|-------------|
@@ -27,12 +30,23 @@ have captured, with nothing left unexplained:
 | flame up, flame down | `cmd2` `0x32`→`0x33`→`0x34` | `flame` only ✓ |
 | mode → smart | `cmd1` `0x01`→`0x03` | `thermostat` only ✓ |
 
+And the inherited `tests/cmd.csv` obeys it. Across 220 packets from five
+*other* remotes, collected by someone else years earlier, no nibble ever
+encodes a three-bit level of 7 — `0x7` and `0xf` never appear as `cmd1`'s high
+nibble, nor as either of `cmd2`'s — and `cmd1`'s low nibble never exceeds 3.
+That is precisely the constraint "three-bit fields count 0 to 6, reserved bits
+are never set", and it is not something that happens by accident.
+
 Its checksum formula is also mathematically identical to the one we derived
-independently from `tests/cmd.csv`, for all 256 command values, with
+from that same table, for all 256 command values, with
 `K = (c_high << 4) | c_low`. Note that smartfire *hardcodes* its own remote's
 constants (which work out to `K1 = 0xd0`, `K2 = 0x07`); ours are `0x0a` and
 `0x86`, so that part of it would be wrong for any remote but theirs. We derive
 `K` per remote from a single frame instead.
+
+What none of this settles is **which three-bit field is which**. The evidence
+above pins the boundaries; only pressing a button says whether `cmd2`'s upper
+field is really the blower. That is what the procedure below is for.
 
 ## What is already settled
 
