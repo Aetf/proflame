@@ -57,7 +57,9 @@ field is really the blower. That is what the procedure below is for.
 | `thermostat` | **Confirmed.** Smart→manual moved it and the flame stopped drifting. |
 | `fan` | **Confirmed.** Swept off→high→off; `fan` and nothing else each time. |
 | `light` | **Confirmed.** Swept off→high→off; `light` and nothing else each time. |
-| `aux`, `front`, `pilot` | **Unverified.** smartfire's claim only. |
+| `front` | **Not present on this appliance.** The handset has no split-flame control. |
+| `aux` | No separate control on this handset — its MODE cycle is Flame / Blower / "Lights (AUX)", so the light level is the only thing reaching that part of the frame. |
+| `pilot` | **Unverified.** Adjustable from the handset by a key combination, which we do not have. |
 | `reserved` | Zero in every frame so far. |
 
 The blower sweep also settled a standing anomaly: `fan` read 3 in every capture
@@ -65,8 +67,16 @@ for days, which turned out to be the blower genuinely sitting at level 3 rather
 than the field being mislabelled. And it reaches 0, so the blower can be
 switched off over RF.
 
-**Remaining: steps 6, 7 and 8** — aux, split flame, pilot. Those are the last
-three bits of the sixteen.
+**Remaining: pilot only.** Of the other two, split flame does not exist on this
+appliance and aux has no separate control on this handset, so neither can be
+exercised here. Five fields are confirmed, one is untestable, one is absent,
+and one waits on a key combination.
+
+The handset's MODE button cycles through exactly three adjustable things —
+Flame Adjust, Blower, and "Lights (AUX)" — which is why the sweeps came out so
+cleanly: MODE picks the target and up/down moves it, so one press can only ever
+touch one field. It also explains the label's aside that Flame Adjust is "not
+for smart thermostat": in smart mode the handset is driving the flame itself.
 
 ## Before you start
 
@@ -100,10 +110,10 @@ information too.
 | 3 | ~~Flame~~ **done** | `flame`, 0…6 |
 | 4 | ~~Fan~~ **done**, including off | `fan`, 0…6 |
 | 5 | ~~Light~~ **done** | `light`, 0…6 |
-| 6 | Aux outlet: toggle on, then off | `aux` |
-| 7 | Split/front flame: toggle on, then off | `front` |
-| 8 | Pilot mode: continuous ↔ intermittent (often a settings menu, not a button) | `pilot` |
-| 9 | Power: off, then on | `power` (re-confirmation) |
+| 6 | ~~Aux~~ — not separately controllable here | `aux` |
+| 7 | ~~Split flame~~ — this appliance does not have it | `front` |
+| 8 | **Pilot mode**: needs the handset key combination | `pilot` |
+| 9 | ~~Power~~ **done** | `power` |
 
 Steps 3 to 5 sweep the whole range deliberately. A single press only shows the
 field moves; the full sweep shows it counts 0 to 6 linearly and where it

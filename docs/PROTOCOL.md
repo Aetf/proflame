@@ -87,11 +87,11 @@ capture we have:
 | `cmd1` bit 1 | **Thermostat ("smart") mode.** `1` is smart, `0` is manual. | Confirmed by a controlled capture |
 | `cmd1` bits 3–2 | Reserved; zero in every frame seen. | — |
 | `cmd1` bits 6–4 | **Accent light, 0–6.** | Confirmed by a controlled sweep |
-| `cmd1` bit 7 | Continuous pilot. | smartfire's claim, unverified |
+| `cmd1` bit 7 | Continuous pilot. | smartfire's claim; adjustable from the handset via a key combination, not yet captured |
 | `cmd2` bits 2–0 | **Main flame level, 0–6.** | Confirmed |
-| `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim, unverified |
+| `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim; this handset has no separate control for it |
 | `cmd2` bits 6–4 | **Blower, 0–6.** Reaches 0, so it can be switched off. | Confirmed by a controlled sweep |
-| `cmd2` bit 7 | Front flame / split. | smartfire's claim, unverified |
+| `cmd2` bit 7 | Front flame / split. | smartfire's claim; **this appliance does not have the feature** |
 
 All sixteen bits are accounted for, which is what makes a complete
 verification possible; `docs/MAPPING.md` is the procedure.
@@ -171,6 +171,50 @@ loss here.
 Holding a button does step faster than five frames per level, though. Some
 levels appear only once or twice in the recording, and a few are skipped
 entirely, so a receiver must not assume it sees every intermediate state.
+
+### The appliance is stateless; the handset holds the state
+
+This is the most consequential thing learned so far, and it shapes the whole
+Home Assistant design.
+
+Every frame carries the complete state of every field — never a delta, never an
+increment. The handset repeats that whole state five times per press. Switching
+off leaves the flame, blower and light levels intact in the frame, and turning
+back on restores them. Nothing in the protocol ever asks the appliance what it
+is currently doing.
+
+The reading that fits all of it: **the appliance simply obeys the last complete
+state it was told, and the handset is the thing that remembers.** The levels
+that "survive" a power cycle survive in the handset, not in the fireplace.
+
+The handset's own label supports this from the other side. It offers three
+thermostat choices — SMART ("fire modulates up/down and on/off"), ON ("standard
+thermostat — fire will turn on/off") and OFF ("thermostat is off — manual
+operation") — but the protocol has only **one** thermostat bit, and across 314
+frames covering all of this the two spare bits of `cmd1` were never once set.
+So the difference between "modulates the flame" and "only switches on and off"
+is not transmitted at all. It is behaviour inside the handset, which decides
+what complete state to send and when.
+
+We watched it do exactly that: in smart mode the handset drives `power` as well
+as `flame`, unprompted, and `cmd1 = 0x02` — thermostat set, power clear — is the
+state where it had decided the room was warm enough.
+
+#### What this costs the integration
+
+**Two state holders that cannot hear each other.** Home Assistant will hold a
+model and transmit from it; the handset holds its own and cannot receive. After
+Home Assistant changes anything, the handset's model is stale, and the next
+press on it will transmit that stale state and silently undo the change.
+
+Listening (M5) fixes one direction only. Home Assistant can track every frame it
+hears, including the handset's, so its model stays right. The handset has no
+such option — it is a transmitter.
+
+There is no protocol-level fix for this; it is a property of the appliance. What
+an integration can do is make the failure legible rather than surprising: treat
+the handset as authoritative whenever it speaks, and expect a press after a
+Home Assistant command to revert things.
 
 ### Thermostat mode
 
