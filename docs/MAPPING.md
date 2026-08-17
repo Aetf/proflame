@@ -55,17 +55,18 @@ field is really the blower. That is what the procedure below is for.
 | `power` | **Confirmed.** Controlled capture, on/off/on/off, nothing else touched. |
 | `flame` | **Confirmed.** Watched step 2→3→4 and 5→4→3, and seen at 0, 1 and 6. |
 | `thermostat` | **Confirmed.** Smart→manual moved it and the flame stopped drifting. |
-| `fan` | **Confirmed.** Swept 1→6→1, eleven transitions, `fan` and nothing else each time. |
-| `light`, `aux`, `front`, `pilot` | **Unverified.** smartfire's claim only. |
+| `fan` | **Confirmed.** Swept off→high→off; `fan` and nothing else each time. |
+| `light` | **Confirmed.** Swept off→high→off; `light` and nothing else each time. |
+| `aux`, `front`, `pilot` | **Unverified.** smartfire's claim only. |
 | `reserved` | Zero in every frame so far. |
 
 The blower sweep also settled a standing anomaly: `fan` read 3 in every capture
 for days, which turned out to be the blower genuinely sitting at level 3 rather
-than the field being mislabelled.
+than the field being mislabelled. And it reaches 0, so the blower can be
+switched off over RF.
 
-Remaining: steps 5 to 8. **`fan` was never seen at 0** — the sweep bottomed out
-at 1 — so whether the blower can be commanded off over RF is still open, and
-worth a press at the bottom of its range.
+**Remaining: steps 6, 7 and 8** — aux, split flame, pilot. Those are the last
+three bits of the sixteen.
 
 ## Before you start
 
@@ -96,9 +97,9 @@ information too.
 |---|---------|----------------|
 | 1 | Baseline: touch nothing for two minutes | nothing (see "echo" below) |
 | 2 | ~~Mode~~ **done** | `thermostat` only |
-| 3 | Flame: press down to minimum, then up to maximum, one step at a time | `flame`, 0…6 |
-| 4 | ~~Fan~~ **done**; but try one more press at the bottom, to see whether it reaches 0 | `fan`, 0…6 |
-| 5 | Light: press down to minimum, then up to maximum | `light`, 0…6 |
+| 3 | ~~Flame~~ **done** | `flame`, 0…6 |
+| 4 | ~~Fan~~ **done**, including off | `fan`, 0…6 |
+| 5 | ~~Light~~ **done** | `light`, 0…6 |
 | 6 | Aux outlet: toggle on, then off | `aux` |
 | 7 | Split/front flame: toggle on, then off | `front` |
 | 8 | Pilot mode: continuous ↔ intermittent (often a settings menu, not a button) | `pilot` |

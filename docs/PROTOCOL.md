@@ -86,11 +86,11 @@ capture we have:
 | `cmd1` bit 0 | **Power.** `1` is on, `0` is off. | Confirmed by a controlled capture |
 | `cmd1` bit 1 | **Thermostat ("smart") mode.** `1` is smart, `0` is manual. | Confirmed by a controlled capture |
 | `cmd1` bits 3–2 | Reserved; zero in every frame seen. | — |
-| `cmd1` bits 6–4 | Accent light, 0–6. | smartfire's claim, unverified |
+| `cmd1` bits 6–4 | **Accent light, 0–6.** | Confirmed by a controlled sweep |
 | `cmd1` bit 7 | Continuous pilot. | smartfire's claim, unverified |
 | `cmd2` bits 2–0 | **Main flame level, 0–6.** | Confirmed |
 | `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim, unverified |
-| `cmd2` bits 6–4 | **Blower, 0–6.** | Confirmed by a controlled sweep |
+| `cmd2` bits 6–4 | **Blower, 0–6.** Reaches 0, so it can be switched off. | Confirmed by a controlled sweep |
 | `cmd2` bit 7 | Front flame / split. | smartfire's claim, unverified |
 
 All sixteen bits are accounted for, which is what makes a complete
@@ -133,28 +133,44 @@ read as if it did: it is a systematic sweep of command values, not a log of
 presses with known meaning. Semantics come only from captures where the button
 is known.
 
-### The blower and the thermostat, confirmed (2026-08-17)
+### Five fields confirmed on our own remote (2026-08-17)
 
-`tests/frames/manual_fan_sweep.frames.jsonl` settles both, in one session
-recorded by the daemon. The handset was switched from smart to manual mode and
-the blower then stepped from 1 up to 6 and back down to 1, one level at a time.
+`tests/frames/manual_sweeps.frames.jsonl` is a 73-minute session recorded by
+the daemon: the handset was switched from smart to manual mode, and then the
+blower, the accent light and the flame were each swept from off up to high and
+back down.
 
-Every step moved `cmd2` bits 6–4 and **nothing else** — eleven consecutive
-transitions, each reported as `changed: fan` — so that field is the blower, and
-it counts linearly in both directions. That also explains the anomaly that had
-been sitting in every earlier capture: `fan` read 3 constantly because the
-blower was genuinely sitting at level 3.
+Across the whole session there is **exactly one** transition that moves more
+than one field, and it is the deliberate mode switch. Every other step moves a
+single field. Three sweeps landing in three different places is a much stronger
+result than any one of them: a layout that merely fit the earlier data would
+not survive that.
 
-The manual-mode frames carry `thermostat = 0` where the smart-mode ones carried
-1, and the flame stayed at 4 for the whole session instead of drifting on its
-own. Both are the isolation the earlier capture could not give.
+So `power`, `flame`, `thermostat`, `fan` and `light` are now confirmed on this
+remote. `aux`, `front` and `pilot` remain smartfire's claim, and the two
+reserved bits have been zero in every frame ever received.
 
-One reception note worth keeping: 73 of the 80 frames decoded. The rest arrived
-late in the session at a weaker level — peak 159 where the others saturate at
-256 — and at that level the inter-frame gap stops being distinguishable, so
-pairs of frames merge into an eight-block burst that cannot decode. It cost
-nothing, because the remote sends five identical frames per state, so no step
-of the sweep was lost. Frame loss is not information loss here.
+Two open questions closed. **The blower reaches 0**, so it can be switched off
+over RF rather than only turned down. And `fan` reading 3 in every earlier
+capture was simply the blower sitting at level 3 — the field was right all
+along.
+
+One more detail worth keeping, because it will matter for Home Assistant: the
+final power-off moved **only** the `power` bit, leaving flame, fan and light
+where they were. Combined with the earlier capture, where switching off left
+`cmd2 = 0x36` untouched, the appliance clearly remembers its levels across a
+power cycle rather than zeroing them.
+
+Reception over the session: 236 of 266 frames decoded. The shortfall is not
+weak signal — all but eleven frames arrived saturated — but fragmentary bursts,
+with edge counts running down to 15 where a whole frame is 131 to 143. The
+signal dropped mid-frame. It cost nothing: five identical frames carry each
+state, and every step of every sweep survived. Frame loss is not information
+loss here.
+
+Holding a button does step faster than five frames per level, though. Some
+levels appear only once or twice in the recording, and a few are skipped
+entirely, so a receiver must not assume it sees every intermediate state.
 
 ### Thermostat mode
 
