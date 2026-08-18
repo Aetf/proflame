@@ -140,18 +140,16 @@ Three outcomes are interesting rather than routine:
   air, which matters: it means the fireplace cannot be told to do it over RF
   either.
 
-## The echo, and why step 1 exists
+## The echo, settled: there isn't one
 
-smartfire reports that **the fireplace echoes a successful command back
-verbatim**. We have not confirmed that, and step 1 is where it would show:
-sitting idle, any frame at all is either the thermostat regulating or the
-appliance talking.
+smartfire reports that the fireplace echoes a successful command back verbatim.
+Ours does not — tested on 2026-08-18 by transmitting and listening, with the
+transmission cut to three frames so the radio's own deaf window was only 253 ms.
+See `docs/PROTOCOL.md`.
 
-If the echo is real it matters twice over. It is a confirmation channel — after
-transmitting we could listen for the appliance agreeing, rather than assuming.
-And it is a hazard for M5: a received frame is then not necessarily a user
-pressing anything, so a naive state sync would treat the appliance's own echo,
-or the thermostat's own regulation, as a command and fight it.
+So a received frame is always somebody pressing the handset, or the handset's
+thermostat regulating. That is simpler than it might have been, and it means a
+command is sent rather than confirmed.
 
 ## Afterwards
 

@@ -309,12 +309,31 @@ inferring from `cmd.csv`.
 Thermostat mode still deserves particular care whenever it is mapped, since it
 makes the appliance cycle on its own and will fight Home Assistant.
 
+## This appliance does not echo (2026-08-18)
+
+smartfire reports that the fireplace echoes a successful command back verbatim.
+Ours does not, which was worth establishing because an echo would have been a
+confirmation channel: something to wait for after transmitting, rather than
+assuming.
+
+Tested by transmitting and then listening, twice. The first attempt is not
+enough on its own — the radio is half-duplex, so it is deaf for the length of
+its own transmission, and a fast echo would land in that window. The second
+used three frames instead of eleven, cutting the deaf window to 253 ms. Nothing
+came back either time.
+
+A second line of evidence agrees. Every handset press in the recordings
+produces exactly five frames, never five plus a reply, and the receiver is
+fully awake throughout those.
+
+The consequence for Home Assistant is simple and worth stating plainly: **a
+command is sent, not confirmed.** Nothing in the protocol reports what the
+appliance did, so an integration's model is always a belief.
+
 ## Still open
 
 1. `aux` and `front`, which this appliance and handset cannot exercise. They
    would need different hardware, and nothing here depends on them.
-2. Whether the fireplace echoes commands back, which smartfire reports and we
-   have never confirmed. It matters for M5; see `docs/MAPPING.md`.
 3. The serial-to-`K` derivation, which is not needed for our own remote and may
    not be worth solving.
 
