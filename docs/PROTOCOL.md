@@ -309,26 +309,34 @@ inferring from `cmd.csv`.
 Thermostat mode still deserves particular care whenever it is mapped, since it
 makes the appliance cycle on its own and will fight Home Assistant.
 
-## This appliance does not echo (2026-08-18)
+## The echo: unresolved, and our test cannot settle it
 
 smartfire reports that the fireplace echoes a successful command back verbatim.
-Ours does not, which was worth establishing because an echo would have been a
-confirmation channel: something to wait for after transmitting, rather than
-assuming.
+Whether ours does is **still open**, and the reason is worth writing down
+because it is a limit of the equipment rather than of the effort.
 
-Tested by transmitting and then listening, twice. The first attempt is not
-enough on its own — the radio is half-duplex, so it is deaf for the length of
-its own transmission, and a fast echo would land in that window. The second
-used three frames instead of eleven, cutting the deaf window to 253 ms. Nothing
-came back either time.
+Transmitting and then listening finds nothing, twice — once with a full
+eleven-frame command and once cut to three frames, so the radio's own deaf
+window was only 253 ms. That looks like an answer, and it is not one: a single
+half-duplex radio cannot hear anything during its own transmission, which is
+exactly when a reply would arrive.
 
-A second line of evidence agrees. Every handset press in the recordings
-produces exactly five frames, never five plus a reply, and the receiver is
-fully awake throughout those.
+There is also evidence pointing the *other* way. When the handset is pressed,
+the receiver is fully awake, and yet a good fraction of those frames come back
+malformed in a very particular manner: bursts longer than one frame, decoding
+correctly through the serial and version blocks and then turning to noise —
+"8 blocks, expected 7". Two transmitters overlapping on one frequency produce
+exactly that. It is also what a merged inter-frame gap produces, so it is
+suggestive rather than conclusive.
 
-The consequence for Home Assistant is simple and worth stating plainly: **a
-command is sent, not confirmed.** Nothing in the protocol reports what the
-appliance did, so an integration's model is always a belief.
+**Settling it needs a second receiver** — one that is not the transmitter, and
+so is never deaf. A CC1101 listening alongside would hear the whole exchange:
+our command, any reply, and the timing between them. That is the test to run,
+and until it is run neither answer is established.
+
+What does *not* depend on the outcome: the appliance beeps when it accepts a
+command, so a transmission that works is confirmable by ear, and every command
+Home Assistant sends is a command it cannot verify in software either way.
 
 ## Still open
 

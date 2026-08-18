@@ -140,16 +140,14 @@ Three outcomes are interesting rather than routine:
   air, which matters: it means the fireplace cannot be told to do it over RF
   either.
 
-## The echo, settled: there isn't one
+## The echo: still open
 
 smartfire reports that the fireplace echoes a successful command back verbatim.
-Ours does not — tested on 2026-08-18 by transmitting and listening, with the
-transmission cut to three frames so the radio's own deaf window was only 253 ms.
-See `docs/PROTOCOL.md`.
-
-So a received frame is always somebody pressing the handset, or the handset's
-thermostat regulating. That is simpler than it might have been, and it means a
-command is sent rather than confirmed.
+Transmitting and listening finds nothing, but a half-duplex radio is deaf
+during its own transmission, which is precisely when a reply would come — so
+that test cannot answer the question. Malformed frames during handset presses
+point weakly the other way. `docs/PROTOCOL.md` has the detail; settling it
+needs a second receiver that never transmits.
 
 ## Afterwards
 
