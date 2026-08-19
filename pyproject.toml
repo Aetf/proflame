@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "proflame"
+version = "0.1.0"
+description = "SIT Proflame 2 fireplace remote protocol: OOK frame encoder, decoder, and per-remote checksum derivation"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+license-files = ["LICENSE-MIT", "LICENSE-APACHE", "COPYRIGHT"]
+requires-python = ">=3.12"
+authors = [{ name = "Aetf", email = "aetf@unlimited-code.works" }]
+keywords = ["proflame", "fireplace", "ook", "rf", "remote", "sit-group"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Home Automation",
+    "Topic :: Communications",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Aetf/proflame"
+Repository = "https://github.com/Aetf/proflame"
+Issues = "https://github.com/Aetf/proflame/issues"
+Changelog = "https://github.com/Aetf/proflame/blob/main/CHANGELOG.md"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"tools/*" = ["D"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,19 +1,19 @@
-"""The SIT Proflame 2 protocol, as Home Assistant needs it.
+"""The SIT Proflame 2 protocol.
 
-A Python encoder to match `proxyd/src/proflame.rs`, which stays the reference
-implementation; `docs/PROTOCOL.md` is the derivation and `tests/` holds the
-captures both are checked against.
+This is the authoritative implementation. `docs/PROTOCOL.md` is the
+derivation and `tests/` holds the captures it is checked against; it was
+originally validated frame-for-frame against an independent Rust
+implementation before that one was retired.
 
-Only the encoder lives here. Home Assistant needs to build commands, not
-demodulate radio — the daemon does that and delivers decoded timings.
+Both directions live here: encoding a complete appliance state into OOK
+timings for a transmitter, and decoding demodulated timings back into a
+state and the identity of the handset that sent them. Nothing here touches a
+radio — a transceiver is whatever turns timings into RF and back.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import override
-
-from rf_protocols import ModulationType, RadioFrequencyCommand
 
 #: Manchester half-bit. The whole frame is a multiple of this.
 SYMBOL_US = 450
@@ -163,80 +163,52 @@ class State:
         return replace(self, **changes)  # type: ignore[arg-type]
 
 
-class ProflameCommand(RadioFrequencyCommand):
-    """A complete appliance state, ready to transmit."""
+def frame_blocks(remote: Remote, state: State) -> list[int]:
+    """The seven block values of one frame, in air order."""
+    cmd1, cmd2 = state.to_commands()
+    return [
+        remote.serial1,
+        remote.serial2,
+        remote.version,
+        cmd1,
+        cmd2,
+        checksum(cmd1, remote.key1),
+        checksum(cmd2, remote.key2),
+    ]
 
-    def __init__(
-        self,
-        remote: Remote,
-        state: State,
-        *,
-        frequency: int = FCC_FREQUENCY,
-        repeat_count: int = DEFAULT_REPEATS,
-        output_power: float | None = None,
-    ) -> None:
-        """Initialize the command."""
-        super().__init__(
-            frequency=frequency,
-            modulation=ModulationType.OOK,
-            repeat_count=repeat_count,
-            output_power=output_power,
-        )
-        self.remote = remote
-        self.state = state
 
-    @property
-    def blocks(self) -> list[int]:
-        """The seven block values, in air order."""
-        cmd1, cmd2 = self.state.to_commands()
-        return [
-            self.remote.serial1,
-            self.remote.serial2,
-            self.remote.version,
-            cmd1,
-            cmd2,
-            checksum(cmd1, self.remote.key1),
-            checksum(cmd2, self.remote.key2),
-        ]
+def encode_timings(remote: Remote, state: State) -> list[int]:
+    """Encode one frame as signed microseconds, positive for carrier on.
 
-    @override
-    def get_raw_timings(self) -> list[int]:
-        """Encode as signed microseconds, positive for carrier on.
+    The result ends on a mark. A frame's true final space cannot be
+    distinguished on air from the silence that follows it, so it belongs to
+    the inter-frame gap rather than to the frame — which also makes this
+    directly comparable with anything demodulated off the air.
+    """
+    symbols: list[bool] = []
+    for index, value in enumerate(frame_blocks(remote, state)):
+        # Sync: three marks and a space. Three equal symbols in a row
+        # cannot occur in Manchester data, so this is a deliberate code
+        # violation that cannot be mistaken for payload.
+        symbols += [True, True, True, False]
 
-        The result ends on a mark. A frame's true final space cannot be
-        distinguished on air from the silence that follows it, so it belongs to
-        the inter-frame gap rather than to the frame — which also makes this
-        directly comparable with anything demodulated off the air.
-        """
-        symbols: list[bool] = []
-        for index, value in enumerate(self.blocks):
-            # Sync: three marks and a space. Three equal symbols in a row
-            # cannot occur in Manchester data, so this is a deliberate code
-            # violation that cannot be mistaken for payload.
-            symbols += [True, True, True, False]
+        bits = [bool(value & (0x80 >> bit)) for bit in range(8)]
+        bits.append(index == 0)  # start-of-frame flag, first block only
+        bits.append(sum(bits) % 2 == 1)  # even parity over the preceding 9
+        bits.append(True)  # stop bit
+        for bit in bits:
+            symbols += [True, False] if bit else [False, True]
 
-            bits = [bool(value & (0x80 >> bit)) for bit in range(8)]
-            bits.append(index == 0)  # start-of-frame flag, first block only
-            bits.append(sum(bits) % 2 == 1)  # even parity over the preceding 9
-            bits.append(True)  # stop bit
-            for bit in bits:
-                symbols += [True, False] if bit else [False, True]
-
-        timings: list[int] = []
-        for symbol in symbols:
-            signed = SYMBOL_US if symbol else -SYMBOL_US
-            if timings and (timings[-1] > 0) == symbol:
-                timings[-1] += signed
-            else:
-                timings.append(signed)
-        while timings and timings[-1] < 0:
-            timings.pop()
-        return timings
-
-    @override
-    def __repr__(self) -> str:
-        """Return a representation naming the state, which is what matters."""
-        return f"ProflameCommand({self.state}, repeat={self.repeat_count})"
+    timings: list[int] = []
+    for symbol in symbols:
+        signed = SYMBOL_US if symbol else -SYMBOL_US
+        if timings and (timings[-1] > 0) == symbol:
+            timings[-1] += signed
+        else:
+            timings.append(signed)
+    while timings and timings[-1] < 0:
+        timings.pop()
+    return timings
 
 
 @dataclass(frozen=True, slots=True)
@@ -248,11 +220,12 @@ class DecodedFrame:
 
 
 def decode_frame(timings: list[int]) -> DecodedFrame | None:
-    """Decode a burst the daemon received, or None if it is not a clean frame.
+    """Decode a received burst, or None if it is not a clean frame.
 
-    Deliberately all-or-nothing. `proxyd/src/proflame.rs` reports partial
-    results because protocol analysis wants them; Home Assistant does not, and
-    acting on a frame that failed parity would be worse than ignoring it.
+    Deliberately all-or-nothing: a consumer acting on a frame that failed
+    parity would be worse than one ignoring it. Protocol analysis, which
+    wants partial results and framing diagnostics, is a different job — see
+    `tools/decode_proflame.py`.
 
     A burst always ends on a mark — a frame's final space has no terminating
     edge on air — so the tail is restored from the known block length rather
