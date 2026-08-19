@@ -36,11 +36,14 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "D"]
-ignore = ["D203", "D213"]
+# D203/D213: incompatible pairs. D401: the docstrings here are descriptive
+# prose by design, not imperative summaries.
+ignore = ["D203", "D213", "D401"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
-"tools/*" = ["D"]
+# The bench tools predate the lint config and work; not worth churning.
+"tools/*" = ["D", "UP031", "B905", "E501", "SIM115"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,42 @@
+name: Release Please
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-24.04
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+    steps:
+      # An App token rather than GITHUB_TOKEN, so CI runs on the release PR.
+      - name: Generate GitHub token
+        uses: actions/create-github-app-token@v3
+        id: generate-token
+        with:
+          app-id: ${{ secrets.RELEASE_PLZ_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLZ_APP_PRIVATE_KEY }}
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+
+  publish-pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-24.04
+    needs: release-please
+    if: needs.release-please.outputs.release_created
+    permissions:
+      # PyPI trusted publishing (OIDC): no long-lived token to leak.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv build
+      - uses: pypa/gh-action-pypi-publish@release/v1
