@@ -31,8 +31,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: |
-          uv venv --python ${{ matrix.python }}
-          uv pip install -e . --group dev
+          uv sync --python ${{ matrix.python }}
           uv run pytest
 
   renovate-config:

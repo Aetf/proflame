@@ -4,7 +4,7 @@ Status: **solved**. Framing and checksums verified 2026-08-16; the command
 fields confirmed by controlled captures 2026-08-17.
 
 The frame format below was derived from scratch from two captures of the
-fireplace remote taken in the living room at 315 MHz, and independently
+fireplace remote taken beside the fireplace at 315 MHz, and independently
 reproduces the checksum relation that had been derived earlier from an
 inherited packet table. Test data lives in `tests/`, and
 `tools/decode_proflame.py` is the reference decoder.
@@ -363,3 +363,16 @@ Home Assistant sends is a command it cannot verify in software either way.
   verbatim. We have not confirmed that; see `docs/MAPPING.md`.
 
 [smartfire]: https://github.com/johnellinwood/smartfire
+
+## Acknowledgments
+
+- [smartfire](https://github.com/johnellinwood/smartfire) by John Ellinwood —
+  an independent Proflame 2 reverse-engineering effort. Its published bit
+  layout turned our field mapping from an open-ended hunt into eight fields
+  to confirm, and its checksum write-up corroborated the relation we had
+  derived independently. Where our findings differ (per-remote checksum
+  constants, the echo question), the differences are documented above and in
+  `docs/MAPPING.md` rather than papered over.
+- The inherited `tests/cmd.csv` packet table (220 decoded packets from five
+  remotes, collected by an earlier proflame-mqtt prototype) — the raw data
+  the checksum relation was first solved from, kept as regression data.
