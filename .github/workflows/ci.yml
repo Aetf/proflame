@@ -16,7 +16,7 @@ jobs:
     name: Ruff
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
       - run: uvx ruff check .
 
@@ -28,7 +28,7 @@ jobs:
       matrix:
         python: ["3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v6
       - run: |
           uv sync --python ${{ matrix.python }}
@@ -39,5 +39,5 @@ jobs:
     name: Validate renovate config
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: npx --yes --package renovate -- renovate-config-validator --strict
