@@ -48,6 +48,9 @@ Two things worth knowing before building on it:
 - Bench scripts — the standalone reference decoder and the checksum analysis
   that first solved the relation — live in
   [tools/](https://github.com/Aetf/proflame/tree/main/tools).
+- Related work — smartfire, rtl_433's decoder, HACS-Proflame2 — is compared
+  and credited at the end of
+  [docs/PROTOCOL.md](https://github.com/Aetf/proflame/blob/main/docs/PROTOCOL.md).
 
 ## License
 

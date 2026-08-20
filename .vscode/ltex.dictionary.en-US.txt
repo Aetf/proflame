@@ -8,3 +8,11 @@ Proflame
 proflame-mqtt
 smartfire
 µs
+jeffgregx2
+kBd
+LilyGO
+rtl
+rtl_433
+YardStick
+Zuckschwerdt
+HACS-Proflame2

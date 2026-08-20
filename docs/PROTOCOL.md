@@ -366,15 +366,37 @@ Home Assistant sends is a command it cannot verify in software either way.
 
 [smartfire]: https://github.com/johnellinwood/smartfire
 
-## Acknowledgments
+## Related work and acknowledgments
 
-- [smartfire](https://github.com/johnellinwood/smartfire) by John Ellinwood —
-  an independent Proflame 2 reverse-engineering effort. Its published bit
-  layout turned our field mapping from an open-ended hunt into eight fields
-  to confirm, and its checksum write-up corroborated the relation we had
-  derived independently. Where our findings differ (per-remote checksum
-  constants, the echo question), the differences are documented above and in
-  `docs/MAPPING.md` rather than papered over.
+- [smartfire](https://github.com/johnellinwood/smartfire) by John Ellinwood
+  (2020, GPL-3.0) — the original public Proflame 2 reverse engineering, plus a
+  YardStick One-based controller. Its published bit layout turned our field
+  mapping from an open-ended hunt into eight fields to confirm, and its
+  checksum write-up corroborated the relation we had derived independently.
+  Where our findings differ (per-remote checksum constants, the echo
+  question), the differences are documented above and in `docs/MAPPING.md`
+  rather than papered over. Its issue tracker asks how to clone another
+  remote's identity ([smartfire#1]); deriving the constants from one captured
+  frame, as `Remote.from_frame` does, is this library's answer.
+- [rtl_433][rtl-433-commit] carries a Proflame 2 decoder (receive-only,
+  by Christian W. Zuckschwerdt, building on smartfire's decode) — the easiest
+  way to watch frames with an RTL-SDR and a useful independent check on any
+  capture.
+- [HACS-Proflame2](https://github.com/jeffgregx2/HACS-Proflame2) by jeffgregx2
+  (GPL-3.0) — an actively developed Home Assistant integration for the same
+  appliances, driving its own radio hardware (a LilyGO T-Embed CC1101 or a
+  YardStick One) with guided learning and, on the LilyGO, live listening. It
+  carries its own protocol implementation; this library exists so that
+  implementations like it would not have to.
 - The inherited `tests/cmd.csv` packet table (220 decoded packets from five
   remotes, collected by an earlier proflame-mqtt prototype) — the raw data
   the checksum relation was first solved from, kept as regression data.
+
+One measured divergence worth stating: smartfire's notes and the rtl_433
+decoder put the symbol period near 414 µs (≈2.4 kBd), where every capture of
+our handset quantizes cleanly at 450 µs. Whether that is a hardware revision
+difference or a measurement-methodology one is open; the decoder here tracks
+what our captures show.
+
+[smartfire#1]: https://github.com/johnellinwood/smartfire/issues/1
+[rtl-433-commit]: https://github.com/merbanan/rtl_433/commit/21d7fadef51bed39e9734b2c02b8d828bbe77453
