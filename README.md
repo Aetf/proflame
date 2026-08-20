@@ -42,7 +42,8 @@ Two things worth knowing before building on it:
   [docs/PROTOCOL.md](https://github.com/Aetf/proflame/blob/main/docs/PROTOCOL.md).
 - The field-confirmation procedure and its results live in
   [docs/MAPPING.md](https://github.com/Aetf/proflame/blob/main/docs/MAPPING.md).
-- Real captures — an inherited five-remote packet table and frames recorded
+- Real captures — a community five-remote packet table (aggregated from
+  [rtl_433#1905](https://github.com/merbanan/rtl_433/issues/1905)) and frames recorded
   off the air, used as golden test data — live in
   [tests/](https://github.com/Aetf/proflame/tree/main/tests).
 - Bench scripts — the standalone reference decoder and the checksum analysis

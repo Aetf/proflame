@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Re-derive the Proflame checksum from the captured packet table and verify it.
 
-Input is tests/cmd.csv, a table of decoded packets inherited from the earlier
-proflame-mqtt prototype. That decoder's field extraction is not trusted, so
+Input is tests/cmd.csv: community packet dumps from rtl_433 issue #1905,
+aggregated there into one table. The original decoders' field extraction is
+not trusted, so
 nothing here assumes the byte grouping is right; the script only asks what
 relation holds within the data, and says so when it cannot explain something.
 

@@ -1,7 +1,7 @@
 """Golden tests against real captures, plus single-fault rejection.
 
-The fixtures are recordings of a real handset (and, for cmd.csv, an
-inherited table of five others). The counts asserted here are the ones the
+The fixtures are recordings of a real handset (and, for cmd.csv, a
+community table of five others). The counts asserted here are the ones the
 original Rust reference implementation produced on the same data; the Python
 implementation was validated against it frame-for-frame before that
 implementation was retired, and these tests pin that agreement.
@@ -45,7 +45,7 @@ def _timing_bursts(name: str) -> list[list[int]]:
     return json.loads((FIXTURES / "frames" / f"{name}.timings.json").read_text())
 
 
-def test_checksum_reproduces_the_inherited_table() -> None:
+def test_checksum_reproduces_the_community_table() -> None:
     """All 440 checksum bytes of cmd.csv, across five remotes, from derived keys."""
     rows = list(csv.DictReader((FIXTURES / "cmd.csv").open()))
     assert len(rows) == 220

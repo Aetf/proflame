@@ -16,3 +16,4 @@ rtl_433
 YardStick
 Zuckschwerdt
 HACS-Proflame2
+kaechele

@@ -30,8 +30,9 @@ It explains every button press we have captured, with nothing left over:
 | flame up, flame down | `cmd2` `0x32`→`0x33`→`0x34` | `flame` only ✓ |
 | mode → smart | `cmd1` `0x01`→`0x03` | `thermostat` only ✓ |
 
-And the inherited `tests/cmd.csv` obeys it. Across 220 packets from five
-*other* remotes, collected by someone else years earlier, no nibble ever
+And the community packet table `tests/cmd.csv` obeys it. Across 220 packets
+from five *other* remotes, recorded by [rtl_433 users][rtl-433-1905] years
+before this project existed, no nibble ever
 encodes a three-bit level of 7 — `0x7` and `0xf` never appear as `cmd1`'s high
 nibble, nor as either of `cmd2`'s — and `cmd1`'s low nibble never exceeds 3.
 That is precisely the constraint "three-bit fields count 0 to 6, reserved bits
@@ -62,11 +63,6 @@ field is really the blower. That is what the procedure below is for.
 | `pilot` | **Confirmed.** Cycled IPI→CPI→IPI; `pilot` moved and nothing else. |
 | `reserved` | Zero in every frame so far. |
 
-The blower sweep also settled a standing anomaly: `fan` read 3 in every capture
-for days, which turned out to be the blower genuinely sitting at level 3 rather
-than the field being mislabelled. And it reaches 0, so the blower can be
-switched off over RF.
-
 **Nothing remaining that this hardware can reach.** Six fields are confirmed by
 controlled captures; split flame does not exist on this appliance and aux has
 no separate control on this handset, so those two rest on smartfire's word and
@@ -82,7 +78,7 @@ for smart thermostat": in smart mode the handset is driving the flame itself.
 ## Before you start
 
 - **Put the handset in manual mode.** In thermostat/smart mode the remote
-  changes the flame level on its own — we have watched it step 0x31 to 0x30
+  changes the flame level on its own — captures show it stepping 0x31 to 0x30
   unprompted — which would corrupt every single-variable capture in this list.
   This is also why step 2 comes before the rest.
 - **Start the daemon with recording on**, so nothing depends on a client
@@ -107,14 +103,14 @@ information too.
 | # | do this | expect to move |
 |---|---------|----------------|
 | 1 | Baseline: touch nothing for two minutes | nothing (see "echo" below) |
-| 2 | ~~Mode~~ **done** | `thermostat` only |
-| 3 | ~~Flame~~ **done** | `flame`, 0…6 |
-| 4 | ~~Fan~~ **done**, including off | `fan`, 0…6 |
-| 5 | ~~Light~~ **done** | `light`, 0…6 |
-| 6 | ~~Aux~~ — not separately controllable here | `aux` |
-| 7 | ~~Split flame~~ — this appliance does not have it | `front` |
-| 8 | ~~Pilot mode~~ **done** — IPI ↔ CPI | `pilot` |
-| 9 | ~~Power~~ **done** | `power` |
+| 2 | Mode: smart ↔ manual | `thermostat` only |
+| 3 | Flame: sweep 0…6 and back | `flame` |
+| 4 | Fan: sweep, including off | `fan` |
+| 5 | Light: sweep, including off | `light` |
+| 6 | Aux, if the handset controls it separately | `aux` |
+| 7 | Split flame, if the appliance has it | `front` |
+| 8 | Pilot mode: IPI ↔ CPI | `pilot` |
+| 9 | Power: on, off, on, off | `power` |
 
 Steps 3 to 5 sweep the whole range deliberately. A single press only shows the
 field moves; the full sweep shows it counts 0 to 6 linearly and where it
@@ -139,6 +135,9 @@ Three outcomes are interesting rather than routine:
 - **Nothing moves.** The handset has that function, but it does not reach the
   air, which matters: it means the fireplace cannot be told to do it over RF
   either.
+- **A field that never moves is not evidence of a wrong label.** A level
+  genuinely parked at one value reads exactly like a mislabelled field; only
+  sweeping the control tells them apart, which is why steps 3–5 sweep.
 
 ## The echo: still open
 
@@ -156,3 +155,4 @@ way the existing captures are kept, so the conclusions stay pinned by data
 rather than by memory.
 
 [smartfire]: https://github.com/johnellinwood/smartfire
+[rtl-433-1905]: https://github.com/merbanan/rtl_433/issues/1905

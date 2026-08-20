@@ -6,7 +6,7 @@ fields confirmed by controlled captures 2026-08-17.
 The frame format below was derived from scratch from two captures of the
 fireplace remote taken beside the fireplace at 315 MHz, and independently
 reproduces the checksum relation that had been derived earlier from an
-inherited packet table. Test data lives in `tests/`, and
+community packet table from [rtl_433#1905][rtl-433-1905]. Test data lives in `tests/`, and
 `tools/decode_proflame.py` is the reference decoder.
 
 ## Physical layer
@@ -51,7 +51,7 @@ The seven blocks are, in order:
 For the remote in this house: `serial1 = 0x00`, `serial2 = 0x86`,
 `version = 0x02`.
 
-That is worth pausing on. The inherited notes recorded a "Remote ID" of
+That is worth pausing on. The earlier prototype's notes recorded a "Remote ID" of
 `008602` with no explanation of its structure; decoding the air interface from
 scratch produced exactly those three bytes as three separate fields. The two
 independent derivations agree.
@@ -69,7 +69,7 @@ For this remote, **K = 0x0a for half 1 and 0x86 for half 2**, constant across
 all 29 captured frames spanning six distinct command values.
 
 This model came from `tests/cmd.csv`, a table of 220 packets from five other
-remotes inherited from the earlier prototype, where it reproduced 440 of 440
+remotes in the community table ([rtl_433#1905][rtl-433-1905]), where it reproduced 440 of 440
 checksum bytes. It then predicted ours correctly on the first try. Deriving `K`
 needs only one valid frame, so no part of the serial-to-`K` mapping has to be
 solved to transmit.
@@ -108,12 +108,13 @@ Three independent things agree on this layout, which is why the field
 2. It explains every press we captured, with nothing left over: power moved
    only `power`, the flame buttons only `flame`, switching to smart mode only
    `thermostat`.
-3. The inherited `cmd.csv` obeys it. Across 220 packets from five other
+3. The community `cmd.csv` obeys it. Across 220 packets from five other
    remotes, every nibble that would encode a 3-bit level of 7 is **absent** —
    `0x7` and `0xf` never appear as `cmd1`'s high nibble, nor as either of
    `cmd2`'s — and `cmd1`'s low nibble never exceeds 3. That is exactly the
    constraint "three-bit fields count 0 to 6, and the reserved bits are never
-   set", holding across a table collected by someone else years earlier. It
+   set", holding across a table of other people's remotes, recorded years
+   before this project existed. It
    also retroactively explains the shape those notes recorded without
    explanation: "high nibbles 0–6 with an optional 0x8 flag" is `light` with
    `pilot` above it.
@@ -133,7 +134,7 @@ resumes at it, exactly as the physical remote behaves. The corollary is that
 turning the fireplace off at some *other* flame level would be a frame no
 remote has sent, and the project does not synthesize those.
 
-The inherited `cmd.csv` does not corroborate any of this, and should not be
+The community `cmd.csv` does not corroborate any of this, and should not be
 read as if it did: it is a systematic sweep of command values, not a log of
 presses with known meaning. Semantics come only from captures where the button
 is known.
@@ -186,8 +187,8 @@ entirely, so a receiver must not assume it sees every intermediate state.
 
 ### The appliance is stateless; the handset holds the state
 
-This is the most consequential thing learned so far, and it shapes the whole
-Home Assistant design.
+This is the protocol's most consequential property, and it shapes any
+consumer's design.
 
 Every frame carries the complete state of every field — never a delta, never an
 increment. The handset repeats that whole state five times per press. Switching
@@ -349,8 +350,8 @@ Home Assistant sends is a command it cannot verify in software either way.
 
 ## Reference
 
-- [smartfire] — Python Proflame 2 controller; the origin of the inherited
-  approach, and the source of the command-byte bit layout. Its frame structure
+- [smartfire] — Python Proflame 2 controller, and the source of the
+  command-byte bit layout. Its frame structure
   was derived independently of ours and agrees exactly: 7 words of 13 bits,
   sync `11`, a start guard bit, 8 data bits, a padding bit set only in the
   first word, parity, an end guard bit, Manchester `10`/`01`.
@@ -388,9 +389,14 @@ Home Assistant sends is a command it cannot verify in software either way.
   YardStick One) with guided learning and, on the LilyGO, live listening. It
   carries its own protocol implementation; this library exists so that
   implementations like it would not have to.
-- The inherited `tests/cmd.csv` packet table (220 decoded packets from five
-  remotes, collected by an earlier proflame-mqtt prototype) — the raw data
-  the checksum relation was first solved from, kept as regression data.
+- The `tests/cmd.csv` packet table — 220 decoded packets from five remotes,
+  recorded by rtl_433 users and aggregated into one file by kaechele in
+  [rtl_433#1905][rtl-433-1905], the thread that grew rtl_433's decoder. It
+  reached this project through an earlier prototype, and the checksum
+  relation was first solved from it; it is kept as regression data. Later
+  work in the same thread (2025) reports generating the constants for
+  arbitrary serial numbers directly — the serial-to-key mapping this library
+  sidesteps by deriving keys from one captured frame.
 
 One measured divergence worth stating: smartfire's notes and the rtl_433
 decoder put the symbol period near 414 µs (≈2.4 kBd), where every capture of
@@ -400,3 +406,4 @@ what our captures show.
 
 [smartfire#1]: https://github.com/johnellinwood/smartfire/issues/1
 [rtl-433-commit]: https://github.com/merbanan/rtl_433/commit/21d7fadef51bed39e9734b2c02b8d828bbe77453
+[rtl-433-1905]: https://github.com/merbanan/rtl_433/issues/1905

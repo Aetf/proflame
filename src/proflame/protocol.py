@@ -47,7 +47,7 @@ def _nibble(value: int) -> int:
 def _mix(byte: int) -> int:
     """The linear map shared by both checksum halves.
 
-    Invertible, but not a CRC — a polynomial search over the inherited packet
+    Invertible, but not a CRC — a polynomial search over the community packet
     table found nothing, and nothing here needs it to be one.
     """
     return (byte & 0xF0) ^ _nibble(byte & 0x0F) ^ _nibble(byte >> 4)
