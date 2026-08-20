@@ -1,5 +1,8 @@
 # proflame
 
+[![CI](https://github.com/Aetf/proflame/actions/workflows/ci.yml/badge.svg)](https://github.com/Aetf/proflame/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/proflame)](https://pypi.org/project/proflame/)
+
 The SIT Proflame 2 fireplace remote protocol, in Python: encode a complete
 appliance state into OOK timings, decode received timings back into a state
 and the identity of the handset that sent them, and derive the per-remote
@@ -34,13 +37,17 @@ Two things worth knowing before building on it:
 
 ## Documentation and data
 
-- `docs/PROTOCOL.md` — the protocol derivation: physical layer, framing,
-  field layout, checksum model, open questions, acknowledgments.
-- `docs/MAPPING.md` — the field-confirmation procedure and its results.
-- `tests/` — real captures: an inherited five-remote packet table and frames
-  recorded off the air, used as golden test data.
-- `tools/` — bench scripts: the standalone reference decoder and the
-  checksum analysis that first solved the relation.
+- The protocol derivation — physical layer, framing, field layout, checksum
+  model, open questions, acknowledgments — lives in
+  [docs/PROTOCOL.md](https://github.com/Aetf/proflame/blob/main/docs/PROTOCOL.md).
+- The field-confirmation procedure and its results live in
+  [docs/MAPPING.md](https://github.com/Aetf/proflame/blob/main/docs/MAPPING.md).
+- Real captures — an inherited five-remote packet table and frames recorded
+  off the air, used as golden test data — live in
+  [tests/](https://github.com/Aetf/proflame/tree/main/tests).
+- Bench scripts — the standalone reference decoder and the checksum analysis
+  that first solved the relation — live in
+  [tools/](https://github.com/Aetf/proflame/tree/main/tools).
 
 ## License
 

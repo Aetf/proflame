@@ -32,6 +32,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: |
           uv sync --python ${{ matrix.python }}
+          uv run basedpyright
           uv run pytest
 
   renovate-config:

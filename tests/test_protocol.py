@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -177,7 +178,9 @@ def _break_manchester(symbols: list[bool]) -> list[int]:
 @pytest.mark.parametrize(
     "corrupt", [_flip_first_data_bit, _break_sync, _clear_stop_bit, _break_manchester]
 )
-def test_rejects_frames_broken_in_exactly_one_way(corrupt) -> None:
+def test_rejects_frames_broken_in_exactly_one_way(
+    corrupt: Callable[[list[bool]], list[int]],
+) -> None:
     good = encode_timings(REMOTE, State(power=True, flame=4, light=2))
     assert decode_frame(good) is not None
     assert decode_frame(corrupt(_to_symbols(good))) is None

@@ -15,7 +15,7 @@ Two things follow. First, there is nothing left over, so a button that does
 anything must move one of these fields — verifying all eight is provably
 complete, in a way that "press every button we can find" never is. Second, if
 a button moves something *else* — in particular the two reserved bits, which
-`hrf decode` prints loudly when they are not zero — then the layout is wrong
+`tools/decode_proflame.py` prints loudly when they are not zero — then the layout is wrong,
 and we have learned something more valuable than a confirmation.
 
 Its layout is not taken on faith. Two other things agree with it
@@ -44,7 +44,7 @@ constants (which work out to `K1 = 0xd0`, `K2 = 0x07`); ours are `0x0a` and
 `0x86`, so that part of it would be wrong for any remote but theirs. We derive
 `K` per remote from a single frame instead.
 
-What none of this settles is **which three-bit field is which**. The evidence
+None of it settles **which three-bit field is which**. The evidence
 above pins the boundaries; only pressing a button says whether `cmd2`'s upper
 field is really the blower. That is what the procedure below is for.
 
@@ -92,12 +92,12 @@ for smart thermostat": in smart mode the handset is driving the flame itself.
 
 - **Nothing here transmits.** The whole procedure is pressing buttons on the
   physical handset while we listen, so none of the project's rules about
-  synthesising frames come into play.
+  synthesizing frames come into play.
 
 ## The procedure
 
 Leave **at least 10 seconds** between steps. That is the only bookkeeping
-required: the frames are self-labelling, because `hrf decode` reports which
+required: the frames are self-labelling, because `tools/decode_proflame.py` reports which
 field changed, so you do not have to record what you pressed. The gap is just
 to keep two presses from blurring into one comparison.
 
@@ -123,7 +123,7 @@ onto it.
 
 ## Reading the results
 
-    hrf decode --in ~/mapping.jsonl
+    uv run python tools/decode_proflame.py ~/mapping.jsonl
 
 The `appliance state` section prints each distinct frame with the fields
 decoded and, next to it, what changed since the previous one. A clean run
@@ -134,9 +134,9 @@ Three outcomes are interesting rather than routine:
 - **Two fields move on one press.** Either they are genuinely coupled — for
   instance, some models drop the fan when the flame goes out — or the layout
   splits a field in the wrong place.
-- **`reserved` is not zero.** The layout is wrong. `hrf decode` says so
+- **`reserved` is not zero.** The layout is wrong. `tools/decode_proflame.py` says so
   explicitly rather than hiding it.
-- **Nothing moves.** The handset has that function but it does not reach the
+- **Nothing moves.** The handset has that function, but it does not reach the
   air, which matters: it means the fireplace cannot be told to do it over RF
   either.
 
@@ -149,7 +149,7 @@ that test cannot answer the question. Malformed frames during handset presses
 point weakly the other way. `docs/PROTOCOL.md` has the detail; settling it
 needs a second receiver that never transmits.
 
-## Afterwards
+## Afterward
 
 Keep the recording. Add it to `tests/frames/` with the step it came from, the
 way the existing captures are kept, so the conclusions stay pinned by data

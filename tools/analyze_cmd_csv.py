@@ -9,25 +9,30 @@ relation holds within the data, and says so when it cannot explain something.
 Run: python3 tools/analyze_cmd_csv.py [path/to/cmd.csv]
 """
 
+from __future__ import annotations
+
 import csv
 import sys
 from collections import defaultdict
 from pathlib import Path
 
+Row = dict[str, int]
+Serial = tuple[int, int]
+
 DEFAULT_CSV = Path(__file__).resolve().parent.parent / "tests" / "cmd.csv"
 
 
-def load(path):
+def load(path: Path) -> list[Row]:
     with open(path, newline="") as handle:
         return [{k: int(v, 16) for k, v in row.items()} for row in csv.DictReader(handle)]
 
 
-def low_nibble_map(n):
+def low_nibble_map(n: int) -> int:
     """The per-nibble contribution: n ^ (n << 5), truncated to 8 bits."""
     return (n ^ (n << 5)) & 0xFF
 
 
-def checksum_map(byte):
+def checksum_map(byte: int) -> int:
     """The linear map from a command byte to its checksum contribution.
 
     Derived from the data, then simplified: the high nibble passes through,
@@ -37,9 +42,9 @@ def checksum_map(byte):
     return (byte & 0xF0) ^ low_nibble_map(byte & 0x0F) ^ low_nibble_map(byte >> 4)
 
 
-def check_field_dependence(rows):
+def check_field_dependence(rows: list[Row]) -> bool:
     """Each checksum byte must be a function of its own command byte alone."""
-    seen = defaultdict(set)
+    seen: defaultdict[tuple[str, tuple[int, int, int], int], set[int]] = defaultdict(set)
     for row in rows:
         key = (row["serial1"], row["serial2"], row["version"])
         seen[("cs1", key, row["cmd1"])].add(row["checksum1"])
@@ -50,15 +55,15 @@ def check_field_dependence(rows):
     return not violations
 
 
-def check_affine(rows):
+def check_affine(rows: list[Row]) -> bool:
     """XOR-affinity: cs(a) ^ cs(b) must depend only on a ^ b, per serial."""
     ok = True
     for half, cmd_field, cs_field in (("1", "cmd1", "checksum1"), ("2", "cmd2", "checksum2")):
-        by_serial = defaultdict(dict)
+        by_serial: defaultdict[Serial, dict[int, int]] = defaultdict(dict)
         for row in rows:
             by_serial[(row["serial1"], row["serial2"])][row[cmd_field]] = row[cs_field]
         for serial, table in by_serial.items():
-            diffs = {}
+            diffs: dict[int, int] = {}
             for a, ca in table.items():
                 for b, cb in table.items():
                     delta, value = a ^ b, ca ^ cb
@@ -70,9 +75,11 @@ def check_affine(rows):
     return ok
 
 
-def derive_constants(rows):
+def derive_constants(rows: list[Row]) -> dict[Serial, tuple[int, int]]:
     """Per-serial, per-half constant: cs ^ checksum_map(cmd)."""
-    constants = defaultdict(lambda: defaultdict(set))
+    constants: defaultdict[Serial, defaultdict[str, set[int]]] = defaultdict(
+        lambda: defaultdict(set)
+    )
     for row in rows:
         serial = (row["serial1"], row["serial2"])
         constants[serial]["cs1"].add(row["checksum1"] ^ checksum_map(row["cmd1"]))
@@ -92,7 +99,7 @@ def derive_constants(rows):
     return {s: (next(iter(v["cs1"])), next(iter(v["cs2"]))) for s, v in constants.items()}
 
 
-def verify(rows, constants):
+def verify(rows: list[Row], constants: dict[Serial, tuple[int, int]]) -> bool:
     """Reproduce every checksum byte in the table."""
     failures = 0
     for row in rows:
@@ -106,7 +113,7 @@ def verify(rows, constants):
     return failures == 0
 
 
-def main():
+def main() -> int:
     path = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_CSV
     rows = load(path)
     print(f"{len(rows)} packets, "

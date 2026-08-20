@@ -29,7 +29,7 @@ Issues = "https://github.com/Aetf/proflame/issues"
 Changelog = "https://github.com/Aetf/proflame/blob/main/CHANGELOG.md"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "basedpyright>=1.29"]
 
 [tool.ruff]
 line-length = 100
@@ -47,3 +47,12 @@ ignore = ["D203", "D213", "D401"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.basedpyright]
+include = ["src", "tests", "tools"]
+typeCheckingMode = "strict"
+# basedpyright's opinions beyond pyright strict; the JSON/CSV boundary keeps
+# Any on purpose.
+reportAny = false
+reportExplicitAny = false
+reportUnusedCallResult = false

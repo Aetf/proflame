@@ -13,7 +13,7 @@ inherited packet table. Test data lives in `tests/`, and
 
 | property | value |
 |----------|-------|
-| carrier | 315.000 MHz, OOK |
+| carrier | `315.000 MHz`, OOK |
 | symbol | 450 µs |
 | coding | Manchester, `10` = 1, `01` = 0 |
 | frame | 7 blocks × 26 symbols = 81.1 ms |
@@ -25,7 +25,7 @@ is regional rather than fixed.
 Measured pulse widths cluster at 400/850/1300 µs for marks and 500/950 µs for
 spaces. Marks read consistently ~100 µs shorter than spaces because the slicing
 threshold sits above the envelope's midpoint; the underlying symbol is 450 µs
-either way, which is why quantising to 450 µs recovers the structure exactly.
+either way, which is why quantizing to 450 µs recovers the structure exactly.
 
 ## Block format
 
@@ -90,7 +90,7 @@ capture we have:
 | `cmd1` bits 6–4 | **Accent light, 0–6.** | Confirmed by a controlled sweep |
 | `cmd1` bit 7 | **Continuous pilot.** `1` is CPI, `0` is IPI. | Confirmed by a controlled toggle |
 | `cmd2` bits 2–0 | **Main flame level, 0–6.** | Confirmed |
-| `cmd2` bit 3 | Auxiliary outlet. | smartfire's claim; this handset has no separate control for it |
+| `cmd2` bit 3 | The auxiliary outlet. | smartfire's claim; this handset has no separate control for it |
 | `cmd2` bits 6–4 | **Blower, 0–6.** Reaches 0, so it can be switched off. | Confirmed by a controlled sweep |
 | `cmd2` bit 7 | Front flame / split. | smartfire's claim; **this appliance does not have the feature** |
 
@@ -131,7 +131,7 @@ field moved: `cmd1` alternated `0x01 → 0x00 → 0x01 → 0x00`.
 is not "flame level zero"**. The level rides along unchanged and the appliance
 resumes at it, exactly as the physical remote behaves. The corollary is that
 turning the fireplace off at some *other* flame level would be a frame no
-remote has sent, and the project does not synthesise those.
+remote has sent, and the project does not synthesize those.
 
 The inherited `cmd.csv` does not corroborate any of this, and should not be
 read as if it did: it is a systematic sweep of command values, not a log of
@@ -205,7 +205,7 @@ thermostat — fire will turn on/off") and OFF ("thermostat is off — manual
 operation") — but the protocol has only **one** thermostat bit, and across 314
 frames covering all of this the two spare bits of `cmd1` were never once set.
 So the difference between "modulates the flame" and "only switches on and off"
-is not transmitted at all. It is behaviour inside the handset, which decides
+is not transmitted at all. It is behavior inside the handset, which decides
 what complete state to send and when.
 
 We watched it do exactly that: in smart mode the handset drives `power` as well
@@ -244,7 +244,7 @@ and is step 2 of `docs/MAPPING.md`.
 
 Worth having anyway: the checksum model predicted `cmd1 = 0x03`'s checksum
 correctly, a command byte that appears in no earlier capture and in no row of
-`cmd.csv` for this remote. That is independent evidence the model generalises
+`cmd.csv` for this remote. That is independent evidence the model generalizes
 rather than merely fitting the data it came from.
 
 **In thermostat mode the remote transmits on its own.** These ten frames
@@ -263,18 +263,20 @@ the correlation above.
 
 The daemon makes that easier than the bench tools did — `hrf serve --record
 frames.jsonl` keeps every frame it hears, across restarts and disconnects, and
-`hrf decode --in` reads the file directly.
+`tools/decode_proflame.py` reads the file directly.
 
 ## Reproducing
 
     hrf demod --in flame_up.cs8 --gap-us 3000 --threshold 0.3 --out-all up.json
-    hrf decode --in up.json
+    uv run python tools/decode_proflame.py up.json
 
-`hrf decode` is the Rust port of the protocol (`proxyd/src/proflame.rs`,
-2026-08-16); `tools/decode_proflame.py` remains as the independent reference
-and the two agree byte for byte on the captures below. The Rust side also
-carries the encoder (frame -> timings) and regression tests that freeze this
-document's numbers in place.
+Signal processing (`hrf demod`) lives in the hackrf-proxy repository; the
+protocol lives here. The `proflame` library is the authoritative
+implementation — its golden tests freeze this document's numbers in place —
+and `tools/decode_proflame.py` is the independent decoder with the framing
+diagnostics the library's all-or-nothing decoder deliberately omits. Both
+were validated frame for frame against the original Rust implementation
+before it was retired.
 
 `--gap-us 3000` matters: the default 10 ms is longer than the 4.15 ms
 inter-frame gap, so frames get merged into one 429 ms blob and the histogram
@@ -285,10 +287,10 @@ regression data since the raw IQ is 20 MB per capture.
 
 Replaying a captured frame verbatim — `cmd1 = 0x01`, `cmd2 = 0x32`, ten
 repetitions 4.15 ms apart, 315 MHz, TX VGA 30 dB with the amplifier off —
-**ignited the fireplace from the cold state**. The receive and transmit paths
+**ignited the fireplace from the cold state**. Receiving and transmitting
 are both proven end to end, which closes M1.
 
-Nothing was synthesised for that test. The frame was a byte-for-byte reproduction
+Nothing was synthesized for that test. The frame was a byte-for-byte reproduction
 of one the remote itself had sent minutes earlier, which is what made it safe to
 send before the command semantics were mapped.
 
@@ -301,7 +303,7 @@ directions are reachable by replaying frames the remote itself has sent.
 
 The rule that made this safe still stands and still binds. **Replaying a
 captured frame is safe** — it can only reproduce a state the remote just asked
-for. **Synthesising a frame that has never been observed means guessing bits on
+for. **Synthesizing a frame that has never been observed means guessing bits on
 a gas appliance**, and is not something to settle by experiment. That
 distinction is why the off bit was worth waiting for a capture rather than
 inferring from `cmd.csv`.
