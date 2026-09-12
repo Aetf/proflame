@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/Aetf/proflame/compare/v0.1.0...v0.1.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* decode frames that end on a trailing space ([500a560](https://github.com/Aetf/proflame/commit/500a560b099d38a3af44f7ce06bb99cb744fab0f))
+
 ## 0.1.0 (2026-08-20)
 
 
