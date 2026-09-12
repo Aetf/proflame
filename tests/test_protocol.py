@@ -186,6 +186,20 @@ def test_rejects_frames_broken_in_exactly_one_way(
     assert decode_frame(corrupt(_to_symbols(good))) is None
 
 
+@pytest.mark.parametrize("tail", [[-4150], [-3000], [-100000], [-450, -3000]])
+def test_trailing_gap_is_not_part_of_the_frame(tail: list[int]) -> None:
+    """Receivers that report the idle after the last mark still decode.
+
+    The frame's own final space is unobservable on air, so anything after
+    the last mark is the gap, whatever length the receiver put on it.
+    """
+    state = State(power=True, flame=4, light=2)
+    good = encode_timings(REMOTE, state)
+    decoded = decode_frame(good + tail)
+    assert decoded is not None
+    assert decoded.state == state
+
+
 def test_frame_blocks_layout() -> None:
     """Seven blocks in air order: identity, commands, per-half checksums."""
     state = State(power=True, flame=4, light=2)

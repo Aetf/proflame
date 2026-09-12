@@ -227,12 +227,17 @@ def decode_frame(timings: list[int]) -> DecodedFrame | None:
     wants partial results and framing diagnostics, is a different job — see
     `tools/decode_proflame.py`.
 
-    A burst always ends on a mark — a frame's final space has no terminating
-    edge on air — so the tail is restored from the known block length rather
-    than treated as an error.
+    A frame's final space has no terminating edge on air, so what a receiver
+    reports after the last mark is the inter-frame gap, not the frame: some
+    end the burst there, others (ESPHome's remote_receiver) append their idle
+    timeout as one long space. Either way the tail is discarded and restored
+    from the known block length rather than treated as an error.
     """
+    end = len(timings)
+    while end and timings[end - 1] <= 0:
+        end -= 1
     symbols: list[bool] = []
-    for value in timings:
+    for value in timings[:end]:
         count = max(1, round(abs(value) / SYMBOL_US))
         symbols += [value > 0] * count
     while len(symbols) % BLOCK_SYMBOLS:
