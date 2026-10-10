@@ -14,7 +14,7 @@ concurrency:
 jobs:
   lint:
     name: Ruff
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v10.3.0
@@ -22,7 +22,7 @@ jobs:
 
   test:
     name: Test ${{ matrix.python }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +37,7 @@ jobs:
 
   renovate-config:
     name: Validate renovate config
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - run: npx --yes --package renovate -- renovate-config-validator --strict
