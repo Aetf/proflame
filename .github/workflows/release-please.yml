@@ -11,7 +11,7 @@ on:
 jobs:
   release-please:
     name: Release Please
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
     steps:
@@ -29,7 +29,7 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: release-please
     if: needs.release-please.outputs.release_created
     permissions:
